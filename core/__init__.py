@@ -1,9 +1,12 @@
 from flask import Flask
+from dotenv import load_dotenv
 from .config.settings import get_config
 from .utils.logging import configure_logging, init_request_hooks
 
 
 def create_app(env: str | None = None) -> Flask:
+    # Load .env early
+    load_dotenv()
     app = Flask(__name__)
 
     # Load configuration

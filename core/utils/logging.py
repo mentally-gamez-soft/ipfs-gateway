@@ -3,7 +3,16 @@ import logging
 import os
 import uuid
 from logging.handlers import RotatingFileHandler
-from flask import g, request
+from flask import g, has_request_context, request
+
+
+class RequestIdFilter(logging.Filter):
+    def filter(self, record):
+        if has_request_context():
+            record.request_id = getattr(g, "request_id", None)
+        else:
+            record.request_id = None
+        return True
 
 
 class JsonFormatter(logging.Formatter):
@@ -14,7 +23,7 @@ class JsonFormatter(logging.Formatter):
             "logger": record.name,
             "message": record.getMessage(),
             "module": record.module,
-            "request_id": getattr(g, "request_id", None),
+            "request_id": getattr(record, "request_id", None),
         }
         return json.dumps(payload, ensure_ascii=False)
 
@@ -29,6 +38,7 @@ def configure_logging(app):
     handler = RotatingFileHandler(os.path.join(log_dir, log_file), maxBytes=2_000_000, backupCount=5)
     handler.setLevel(level)
     handler.setFormatter(JsonFormatter())
+    handler.addFilter(RequestIdFilter())
 
     root = logging.getLogger()
     root.setLevel(level)
