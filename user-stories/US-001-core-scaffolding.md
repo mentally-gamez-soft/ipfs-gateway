@@ -2,8 +2,8 @@
 
 - Priority: P0 (Critical)
 - Effort: 3 days (approx. 24h)
-- Status: Not started
-- Completion: 0%
+- Status: Completed
+- Completion: 100%
 
 ## Description
 Set up the initial project structure aligned with IAM-gateway: `core/` (app, config, models, routes, services, utils), logging to `logs/`, environment management via `.env` and load order, base Flask app factory. Prepare pyproject and initial dependencies skeleton without pinning versions yet (subject to approval).
@@ -16,11 +16,11 @@ Set up the initial project structure aligned with IAM-gateway: `core/` (app, con
 - Basic health endpoint working.
 
 ## Tasks Checklist
-- [ ] TASK-001-01: Define project folders and app factory (Effort: 6h)
-- [ ] TASK-001-02: Configure environment loader and `.gitignore` (Effort: 2h)
-- [ ] TASK-001-03: Initialize logging with rotating file handler (Effort: 4h)
-- [ ] TASK-001-04: Add base config classes (Dev/Staging/Prod) (Effort: 4h)
-- [ ] TASK-001-05: Health check route and smoke test (Effort: 2h)
+- [x] TASK-001-01: Define project folders and app factory (Effort: 6h)
+- [x] TASK-001-02: Configure environment loader and `.gitignore` (Effort: 2h)
+- [x] TASK-001-03: Initialize logging with rotating file handler (Effort: 4h)
+- [x] TASK-001-04: Add base config classes (Dev/Staging/Prod) (Effort: 4h)
+- [x] TASK-001-05: Health check route and smoke test (Effort: 2h)
 
 ## Mermaid Workflow
 ```mermaid
