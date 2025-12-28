@@ -144,6 +144,16 @@ ENV/
 env.bak/
 venv.bak/
 
+# Logs
+logs/
+
+# Coverage
+.coverage
+htmlcov/
+
+# VSCode
+.vscode/
+
 # Spyder project settings
 .spyderproject
 .spyproject
