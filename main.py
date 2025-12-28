@@ -1,5 +1,11 @@
+from core import create_app
+
+
+app = create_app()
+
+
 def main():
-    print("Hello from ipfs-gateway!")
+    app.run(host="0.0.0.0", port=5000)
 
 
 if __name__ == "__main__":
