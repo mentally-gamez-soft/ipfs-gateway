@@ -20,6 +20,9 @@ class BaseConfig:
     # Redis
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 
+    # Admin API key
+    ADMIN_API_KEY: str | None = os.getenv("ADMIN_API_KEY")
+
     # Filebase IPFS (S3)
     FILEBASE_IPFS_API_KEY: str | None = os.getenv("FILEBASE_IPFS_API_KEY")
     FILEBASE_S3_ENDPOINT: str = os.getenv("FILEBASE_S3_ENDPOINT", "https://s3.filebase.com")

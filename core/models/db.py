@@ -24,6 +24,7 @@ class User(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     email: str = Field(index=True, unique=True, max_length=255)
     api_key_hash: str = Field(max_length=255)
+    api_key_salt: Optional[str] = Field(default=None, max_length=255)
     status: UserStatus = Field(default=UserStatus.ACTIVE)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_activity_at: Optional[datetime] = None
