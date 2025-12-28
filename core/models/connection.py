@@ -32,5 +32,5 @@ def get_session() -> Session:
     """Get a database session."""
     if engine is None:
         raise RuntimeError("Database engine not initialized")
-    with Session(engine) as session:
+    with Session(engine, expire_on_commit=False) as session:
         yield session

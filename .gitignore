@@ -221,3 +221,6 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# HTTP manual testing files
+tests/api/http/testing-api.http
