@@ -26,5 +26,7 @@ def create_app(env: str | None = None) -> Flask:
     app.register_blueprint(health_bp)
     from .routes.auth import bp as auth_bp
     app.register_blueprint(auth_bp)
+    from .routes.upload import bp as upload_bp
+    app.register_blueprint(upload_bp)
 
     return app
