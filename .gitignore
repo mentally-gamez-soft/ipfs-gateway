@@ -147,6 +147,12 @@ venv.bak/
 # Logs
 logs/
 
+# SQLite databases
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
 # Coverage
 .coverage
 htmlcov/
