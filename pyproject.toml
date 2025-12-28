@@ -10,4 +10,9 @@ dependencies = [
     "Flask==3.0.0",
     "python-dotenv==1.0.1",
     "pytest==8.0.0",
+    "SQLModel==0.0.16",
+    "alembic==1.13.1",
+    "sqlalchemy>=2.0.25,<2.1",
+    "faker==22.0.0",
+    "psycopg2-binary==2.9.10",
 ]

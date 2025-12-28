@@ -2,6 +2,7 @@ from flask import Flask
 from dotenv import load_dotenv
 from .config.settings import get_config
 from .utils.logging import configure_logging, init_request_hooks
+from .models.connection import init_db
 
 
 def create_app(env: str | None = None) -> Flask:
@@ -16,6 +17,9 @@ def create_app(env: str | None = None) -> Flask:
     # Logging
     configure_logging(app)
     init_request_hooks(app)
+
+    # Database
+    init_db(app)
 
     # Register blueprints
     from .routes.health import bp as health_bp
