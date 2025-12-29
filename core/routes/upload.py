@@ -1,17 +1,19 @@
 """
 Routes for file upload and retrieval via Filebase/IPFS.
 """
-from flask import Blueprint, request, jsonify, g, send_file
+from flask import Blueprint, request, jsonify, g, send_file, current_app
 from datetime import datetime
 import io
+import logging
 
 from core.utils.decorators import require_api_key
 from core.services import filebase_service
 from core.models.db import File, AuditLog
 from core.models.connection import get_session
-from sqlalchemy import select
+from sqlmodel import select
 
 bp = Blueprint("upload", __name__)
+logger = logging.getLogger(__name__)
 
 
 @bp.post("/upload")
@@ -19,6 +21,7 @@ bp = Blueprint("upload", __name__)
 def upload():
     """Upload a file to IPFS via Filebase."""
     try:
+        logger.info(f"upload user id: {getattr(g, 'user', None)}")
         # Check if file is present
         if "file" not in request.files:
             return jsonify({"error": "missing_file"}), 400
@@ -32,8 +35,8 @@ def upload():
             return jsonify({"error": "empty_file"}), 400
         
         # Get config from app
-        api_key = request.app.config.get("FILEBASE_IPFS_API_KEY")
-        bucket = request.app.config.get("FILEBASE_BUCKET", "ipfs-gateway")
+        api_key = current_app.config.get("FILEBASE_IPFS_API_KEY")
+        bucket = current_app.config.get("FILEBASE_BUCKET", "ipfs-gateway")
         
         if not api_key:
             return jsonify({"error": "filebase_not_configured"}), 500
@@ -88,6 +91,7 @@ def upload():
         
         return jsonify({"error": "upload_failed", "detail": str(e)}), 500
     except Exception as e:
+        logger.exception("Unexpected error during upload: %s", e)
         return jsonify({"error": "internal_error"}), 500
 
 
@@ -97,8 +101,8 @@ def retrieve(cid):
     """Retrieve a file from IPFS via Filebase."""
     try:
         # Get config from app
-        api_key = request.app.config.get("FILEBASE_IPFS_API_KEY")
-        bucket = request.app.config.get("FILEBASE_BUCKET", "ipfs-gateway")
+        api_key = current_app.config.get("FILEBASE_IPFS_API_KEY")
+        bucket = current_app.config.get("FILEBASE_BUCKET", "ipfs-gateway")
         
         if not api_key:
             return jsonify({"error": "filebase_not_configured"}), 500
@@ -184,5 +188,6 @@ def retrieve(cid):
         
         return jsonify({"error": "retrieve_failed", "detail": str(e)}), 500
     except Exception as e:
+        logger.exception("Unexpected error during retrieve: %s", e)
         return jsonify({"error": "internal_error"}), 500
 

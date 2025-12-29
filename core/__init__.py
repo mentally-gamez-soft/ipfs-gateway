@@ -14,6 +14,13 @@ def create_app(env: str | None = None) -> Flask:
     config_class = get_config(env)
     app.config.from_object(config_class)
 
+    # Refresh secrets from environment after .env is loaded
+    import os
+    app.config["FILEBASE_IPFS_API_KEY"] = os.getenv("FILEBASE_IPFS_API_KEY")
+    app.config["FILEBASE_BUCKET"] = os.getenv("FILEBASE_BUCKET", "ipfs-gateway")
+    app.config["S3_ACCESS_KEY"] = os.getenv("S3_ACCESS_KEY")
+    app.config["S3_SECRET_ACCESS_KEY"] = os.getenv("S3_SECRET_ACCESS_KEY")
+
     # Logging
     configure_logging(app)
     init_request_hooks(app)
