@@ -4,6 +4,7 @@ Implements retry logic (tenacity) and circuit breaker pattern (pybreaker).
 """
 import io
 import logging
+import os
 from typing import Optional, Tuple
 import mimetypes
 
@@ -34,14 +35,14 @@ class FilebaseConnectionError(FilebaseError):
 _circuit_breaker = CircuitBreaker(fail_max=5, reset_timeout=60)
 
 
-def _get_s3_client(api_key: str, endpoint: str = "https://s3.filebase.com") -> any:
+def _get_s3_client(endpoint: str = "https://s3.filebase.com") -> any:
     """Initialize S3 client for Filebase."""
     return boto3.client(
         "s3",
         region_name="us-east-1",
         endpoint_url=endpoint,
-        aws_access_key_id=api_key,
-        aws_secret_access_key=api_key,
+        aws_access_key_id=os.getenv("S3_ACCESS_KEY"),
+        aws_secret_access_key=os.getenv("S3_SECRET_ACCESS_KEY"),
     )
 
 
@@ -51,11 +52,10 @@ def _get_s3_client(api_key: str, endpoint: str = "https://s3.filebase.com") -> a
     retry=retry_if_exception_type((FilebaseConnectionError, ClientError, ConnectionError)),
 )
 def upload_to_filebase(
-    api_key: str,
     bucket: str,
     file_bytes: bytes,
     original_filename: str,
-) -> Tuple[str, str]:
+) -> Tuple[str, str, str]:
     """
     Upload file to Filebase and return CID and MIME type.
     
@@ -67,7 +67,7 @@ def upload_to_filebase(
     :raises FilebaseError: If upload fails
     """
     try:
-        client = _get_s3_client(api_key)
+        client = _get_s3_client()
         mime_type, _ = mimetypes.guess_type(original_filename)
         mime_type = mime_type or "application/octet-stream"
         
@@ -80,13 +80,17 @@ def upload_to_filebase(
             ContentType=mime_type,
         )
         
+        # Extract ETag from response metadata (Filebase returns it)
+        ETag = result.get("ETag", "").strip('"')
+        if not ETag:
+            raise FilebaseError("No ETag returned from Filebase")
         # Extract CID from response metadata (Filebase returns it)
-        cid = result.get("ETag", "").strip('"')
+        cid = result["ResponseMetadata"]["HTTPHeaders"].get("x-amz-meta-cid", "").strip('"')
         if not cid:
             raise FilebaseError("No CID returned from Filebase")
         
-        logger.info(f"Uploaded {original_filename} with CID {cid}")
-        return cid, mime_type
+        logger.info(f"Uploaded {original_filename} with CID {cid} and ETag {ETag}")
+        return ETag, cid, mime_type
     except ClientError as e:
         logger.error(f"Filebase client error during upload: {e}")
         raise FilebaseConnectionError(f"Failed to upload to Filebase: {str(e)}")
@@ -103,37 +107,36 @@ def upload_to_filebase(
     retry=retry_if_exception_type((FilebaseConnectionError, ClientError, ConnectionError)),
 )
 def retrieve_from_filebase(
-    api_key: str,
     bucket: str,
-    cid: str,
+    original_filename: str,
 ) -> bytes:
     """
     Retrieve file from Filebase by CID/key.
     
     :param api_key: Filebase API key
     :param bucket: S3 bucket name
-    :param cid: Content identifier (S3 key)
+    :param original_filename: Original filename for MIME type detection
     :return: File content as bytes
     :raises FilebaseNotFoundError: If content not found
     :raises FilebaseError: If retrieval fails
     """
     try:
-        client = _get_s3_client(api_key)
+        client = _get_s3_client()
         
         # Use circuit breaker
         response = _circuit_breaker.call(
             client.get_object,
             Bucket=bucket,
-            Key=cid,
+            Key=original_filename,
         )
         
         file_bytes = response["Body"].read()
-        logger.info(f"Retrieved {cid} from Filebase")
+        logger.info(f"Retrieved {original_filename} from Filebase")
         return file_bytes
     except ClientError as e:
         if e.response["Error"]["Code"] == "NoSuchKey":
-            logger.warning(f"CID not found in Filebase: {cid}")
-            raise FilebaseNotFoundError(f"Content not found: {cid}")
+            logger.warning(f"file not found in Filebase: {original_filename}")
+            raise FilebaseNotFoundError(f"Content not found: {original_filename}")
         logger.error(f"Filebase client error during retrieve: {e}")
         raise FilebaseConnectionError(f"Failed to retrieve from Filebase: {str(e)}")
     except (ConnectionError, Exception) as e:

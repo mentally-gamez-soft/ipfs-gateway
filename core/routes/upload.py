@@ -39,8 +39,7 @@ def upload():
             return jsonify({"error": "filebase_not_configured"}), 500
         
         # Upload to Filebase
-        cid, mime_type = filebase_service.upload_to_filebase(
-            api_key=api_key,
+        ETag, cid, mime_type = filebase_service.upload_to_filebase(
             bucket=bucket,
             file_bytes=file_bytes,
             original_filename=file.filename,
@@ -132,9 +131,8 @@ def retrieve(cid):
         
         # Retrieve from Filebase
         file_bytes = filebase_service.retrieve_from_filebase(
-            api_key=api_key,
             bucket=bucket,
-            cid=cid,
+            original_filename=file_record.original_filename or cid,
         )
         
         # Audit log for successful retrieve

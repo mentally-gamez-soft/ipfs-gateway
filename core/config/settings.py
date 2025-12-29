@@ -27,6 +27,9 @@ class BaseConfig:
     FILEBASE_IPFS_API_KEY: str | None = os.getenv("FILEBASE_IPFS_API_KEY")
     FILEBASE_S3_ENDPOINT: str = os.getenv("FILEBASE_S3_ENDPOINT", "https://s3.filebase.com")
     FILEBASE_BUCKET: str = os.getenv("FILEBASE_BUCKET", "ipfs-gateway")
+    S3_ACCESS_KEY: str | None = os.getenv("S3_ACCESS_KEY")
+    S3_SECRET_ACCESS_KEY: str | None = os.getenv("S3_SECRET_ACCESS_KEY")
+    ADMIN_API_KEY: str | None = os.getenv("ADMIN_API_KEY")
 
 
 class DevConfig(BaseConfig):

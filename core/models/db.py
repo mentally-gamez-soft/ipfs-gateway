@@ -41,7 +41,7 @@ class File(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     cid: str = Field(index=True, unique=True, max_length=255)
     user_id: int = Field(foreign_key="users.id", index=True)
-    pin_status: PinStatus = Field(default=PinStatus.UNPINNED)
+    pin_status: PinStatus = Field(default=PinStatus.PINNED)
     original_filename: Optional[str] = Field(default=None, max_length=255)
     mime_type: Optional[str] = Field(default=None, max_length=100)
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
