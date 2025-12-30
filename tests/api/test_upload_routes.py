@@ -1,32 +1,34 @@
 """
 API tests for file upload and retrieval routes
 """
+import os
+import importlib
 import pytest
 import io
 from unittest.mock import patch, Mock
 from core import create_app
-from sqlmodel import Session, create_engine, SQLModel
-from sqlmodel.pool import StaticPool
+from sqlmodel import Session
 from core.models.db import User, UserStatus, File, AuditLog
 from core.services.auth_service import generate_api_key, hash_api_key
+from core.models.connection import get_session
 
 
 @pytest.fixture
-def app():
+def app(monkeypatch):
     """Create test Flask app with in-memory SQLite"""
-    app = create_app("testing")
+    # Set test database URL BEFORE creating app
+    monkeypatch.setenv("DATABASE_URL", "sqlite:///:memory:")
+    monkeypatch.setenv("FILEBASE_IPFS_API_KEY", "test-api-key")
+    monkeypatch.setenv("FILEBASE_BUCKET", "test-bucket")
+    monkeypatch.setenv("ADMIN_API_KEY", "admin-key")
     
-    # Override DATABASE_URL for in-memory DB
-    engine = create_engine(
-        "sqlite://",
-        connect_args={"check_same_thread": False},
-        poolclass=StaticPool,
-    )
-    SQLModel.metadata.create_all(engine)
-    app.config["DB_ENGINE"] = engine
-    app.config["FILEBASE_IPFS_API_KEY"] = "test-api-key"
-    app.config["FILEBASE_BUCKET"] = "test-bucket"
-    app.config["ADMIN_API_KEY"] = "admin-key"
+    # Reload settings to pick up new environment variables
+    import core.config.settings as settings
+    importlib.reload(settings)
+    
+    # Create app (will initialize DB with test SQLite)
+    app = create_app("testing")
+    app.config["TESTING"] = True
     
     with app.app_context():
         yield app
@@ -40,11 +42,10 @@ def client(app):
 
 @pytest.fixture
 def db_session(app):
-    """Create database session"""
-    engine = app.config.get("DB_ENGINE")
-    session = Session(engine)
-    yield session
-    session.close()
+    """Create database session using the same connection as the app"""
+    # Use get_session() which uses the global engine initialized by the app
+    for session in get_session():
+        yield session
 
 
 @pytest.fixture
@@ -73,7 +74,7 @@ class TestUploadRoute:
     @patch("core.routes.upload.filebase_service.upload_to_filebase")
     def test_upload_success(self, mock_upload, client, api_key):
         """Should successfully upload file"""
-        mock_upload.return_value = ("QmTest123", "text/plain")
+        mock_upload.return_value = ("etag123", "QmTest123", "text/plain")
         
         file_data = {
             "file": (io.BytesIO(b"test content"), "test.txt")
@@ -82,9 +83,8 @@ class TestUploadRoute:
         response = client.post(
             "/upload",
             data=file_data,
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
         )
-        
         assert response.status_code == 201
         data = response.get_json()
         assert data["cid"] == "QmTest123"
@@ -95,7 +95,7 @@ class TestUploadRoute:
         """Should return 400 if file not provided"""
         response = client.post(
             "/upload",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
         )
         
         assert response.status_code == 400
@@ -111,7 +111,7 @@ class TestUploadRoute:
         response = client.post(
             "/upload",
             data=file_data,
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
         )
         
         assert response.status_code == 400
@@ -140,7 +140,7 @@ class TestRetrieveRoute:
         """Should return 404 for non-existent file"""
         response = client.get(
             "/retrieve/QmNotFound",
-            headers={"Authorization": f"Bearer {api_key}"},
+            headers={"X-API-Key": api_key},
         )
         
         assert response.status_code == 404

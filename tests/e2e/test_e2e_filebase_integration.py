@@ -230,9 +230,14 @@ class TestServiceE2EFilebaseIntegrationAPI:
         assert upload_data["filename"] == filename
         assert upload_data["mime_type"] == mime_type
 
-        stmt = select(File).where(File.cid == cid, File.user_id == user_id)
-        file_record = db_session.exec(stmt).first()
-        assert file_record is not None
+        # Query with a fresh session to see changes from API request
+        from core.models.connection import get_session
+        for session in get_session():
+            stmt = select(File).where(File.cid == cid, File.user_id == user_id)
+            file_record = session.exec(stmt).first()
+            break
+        
+        assert file_record is not None, f"File record not found for CID {cid}"
         assert file_record.original_filename == filename
         assert file_record.mime_type == mime_type
 
@@ -246,8 +251,13 @@ class TestServiceE2EFilebaseIntegrationAPI:
         assert retrieve_resp.data == image_bytes
         assert retrieve_resp.content_type == mime_type
 
-        db_session.refresh(file_record)
-        assert file_record.last_access_at is not None
+        # Query again to check that last_access_at was updated
+        for session in get_session():
+            stmt = select(File).where(File.cid == cid, File.user_id == user_id)
+            updated_file_record = session.exec(stmt).first()
+            assert updated_file_record is not None
+            assert updated_file_record.last_access_at is not None
+            break
 
         stmt = select(AuditLog).where(AuditLog.user_id == user_id, AuditLog.action == "retrieve")
         retrieve_audit = db_session.exec(stmt).first()

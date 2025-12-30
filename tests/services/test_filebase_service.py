@@ -15,11 +15,17 @@ class TestUploadToFilebase:
         mock_client = Mock()
         mock_boto3_client.return_value = mock_client
         
-        # Mock put_object response and circuit breaker call
-        mock_client.put_object.return_value = {"ETag": '"QmTest123"'}
+        # Mock put_object response with proper ResponseMetadata
+        mock_client.put_object.return_value = {
+            "ETag": '"d41d8cd98f00b204e9800998ecf8427e"',
+            "ResponseMetadata": {
+                "HTTPHeaders": {
+                    "x-amz-meta-cid": '"QmTest123"'
+                }
+            }
+        }
         
-        cid, mime_type = filebase_service.upload_to_filebase(
-            api_key="test-key",
+        ETag, cid, mime_type = filebase_service.upload_to_filebase(
             bucket="test-bucket",
             file_bytes=b"test content",
             original_filename="test.txt",
@@ -27,16 +33,23 @@ class TestUploadToFilebase:
         
         assert cid == "QmTest123"
         assert mime_type == "text/plain"
+        assert ETag == "d41d8cd98f00b204e9800998ecf8427e"
 
     @patch("boto3.client")
     def test_upload_mime_type_pdf(self, mock_boto3_client):
         """Should detect PDF MIME type"""
         mock_client = Mock()
         mock_boto3_client.return_value = mock_client
-        mock_client.put_object.return_value = {"ETag": '"Qm123"'}
+        mock_client.put_object.return_value = {
+            "ETag": '"etag123"',
+            "ResponseMetadata": {
+                "HTTPHeaders": {
+                    "x-amz-meta-cid": '"Qm123"'
+                }
+            }
+        }
         
-        cid, mime_type = filebase_service.upload_to_filebase(
-            api_key="test-key",
+        ETag, cid, mime_type = filebase_service.upload_to_filebase(
             bucket="test-bucket",
             file_bytes=b"test",
             original_filename="doc.pdf",
@@ -49,10 +62,16 @@ class TestUploadToFilebase:
         """Should detect PNG MIME type"""
         mock_client = Mock()
         mock_boto3_client.return_value = mock_client
-        mock_client.put_object.return_value = {"ETag": '"Qm123"'}
+        mock_client.put_object.return_value = {
+            "ETag": '"etag123"',
+            "ResponseMetadata": {
+                "HTTPHeaders": {
+                    "x-amz-meta-cid": '"Qm123"'
+                }
+            }
+        }
         
-        cid, mime_type = filebase_service.upload_to_filebase(
-            api_key="test-key",
+        ETag, cid, mime_type = filebase_service.upload_to_filebase(
             bucket="test-bucket",
             file_bytes=b"test",
             original_filename="image.png",
@@ -65,10 +84,16 @@ class TestUploadToFilebase:
         """Should use default MIME type for unknown extensions"""
         mock_client = Mock()
         mock_boto3_client.return_value = mock_client
-        mock_client.put_object.return_value = {"ETag": '"Qm123"'}
+        mock_client.put_object.return_value = {
+            "ETag": '"etag123"',
+            "ResponseMetadata": {
+                "HTTPHeaders": {
+                    "x-amz-meta-cid": '"Qm123"'
+                }
+            }
+        }
         
-        cid, mime_type = filebase_service.upload_to_filebase(
-            api_key="test-key",
+        ETag, cid, mime_type = filebase_service.upload_to_filebase(
             bucket="test-bucket",
             file_bytes=b"test",
             original_filename="unknown.unknownext",
@@ -94,9 +119,8 @@ class TestRetrieveFromFilebase:
         mock_client.get_object.return_value = mock_response
         
         content = filebase_service.retrieve_from_filebase(
-            api_key="test-key",
             bucket="test-bucket",
-            cid="QmTest123",
+            original_filename="test.txt",
         )
         
         assert content == test_content
@@ -114,9 +138,8 @@ class TestRetrieveFromFilebase:
         
         with pytest.raises(filebase_service.FilebaseNotFoundError):
             filebase_service.retrieve_from_filebase(
-                api_key="test-key",
                 bucket="test-bucket",
-                cid="QmMissing",
+                original_filename="missing.txt",
             )
 
 
