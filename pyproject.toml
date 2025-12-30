@@ -15,4 +15,14 @@ dependencies = [
     "sqlalchemy>=2.0.25,<2.1",
     "faker==22.0.0",
     "psycopg2-binary==2.9.10",
+    "boto3==1.34.122",
+    "tenacity==9.0.0",
+    "pybreaker==1.4.1",
+    "vcrpy==5.1.0",
+    "pytest-vcr==1.0.2",
+]
+
+[tool.pytest.ini_options]
+filterwarnings =  [
+    'ignore::DeprecationWarning',
 ]

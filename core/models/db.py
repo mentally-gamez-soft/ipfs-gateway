@@ -33,6 +33,8 @@ class User(SQLModel, table=True):
     files: list["File"] = Relationship(back_populates="user")
     audit_logs: list["AuditLog"] = Relationship(back_populates="user")
 
+    def __repr__(self) -> str:
+        return f"User(id={self.id}, email={self.email}, status={self.status}, api_key_hash={self.api_key_hash}, api_key_salt={self.api_key_salt}, created_at={self.created_at}, last_activity_at={self.last_activity_at})"
 
 class File(SQLModel, table=True):
     """File model representing uploaded content on IPFS."""
@@ -41,7 +43,9 @@ class File(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     cid: str = Field(index=True, unique=True, max_length=255)
     user_id: int = Field(foreign_key="users.id", index=True)
-    pin_status: PinStatus = Field(default=PinStatus.UNPINNED)
+    pin_status: PinStatus = Field(default=PinStatus.PINNED)
+    original_filename: Optional[str] = Field(default=None, max_length=255)
+    mime_type: Optional[str] = Field(default=None, max_length=100)
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
     last_access_at: Optional[datetime] = None
 

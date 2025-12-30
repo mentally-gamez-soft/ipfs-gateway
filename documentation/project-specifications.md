@@ -190,6 +190,7 @@ The API will follow RESTful principles and will include the following endpoints:
 3. **Code Examples**: Sample code snippets for common use cases and integration scenarios.
 5. **Changelog**: A log of all changes and updates to the API and documentation.
 
+
 ### Database Models
 1. **User Model**: Represents users of the IPFS gateway, including fields for email, API key, status (active, inactive, revoked), and timestamps for creation and last activity.
 2. **File Model**: Represents files uploaded to the IPFS network, including fields for CID, user ID (foreign key to User model), pin status, and timestamps for upload and last access.

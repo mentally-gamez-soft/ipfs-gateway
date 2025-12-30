@@ -2,6 +2,8 @@ import os
 import importlib
 
 import pytest
+from sqlmodel import SQLModel, create_engine
+from sqlmodel.pool import StaticPool
 
 from core import create_app
 
@@ -12,8 +14,21 @@ def client(monkeypatch):
     os.environ["ADMIN_API_KEY"] = "admin-secret"
     import core.config.settings as settings
     importlib.reload(settings)
+    
+    # Create app first (this will call init_db)
     app = create_app()
     app.config["TESTING"] = True
+    
+    # Now override the global engine in core.models.connection
+    import core.models.connection as connection
+    connection.engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    # Create tables with the new engine
+    SQLModel.metadata.create_all(connection.engine)
+    
     with app.test_client() as c:
         yield c
 
