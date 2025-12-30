@@ -11,6 +11,7 @@ from core.utils.decorators import require_api_key
 from core.services import filebase_service
 from core.models.db import File, AuditLog, PinStatus, UserRole, User
 from core.models.connection import get_session
+from core.utils.errors import ErrorResponses
 from sqlmodel import select
 
 bp = Blueprint("upload", __name__)
@@ -88,31 +89,27 @@ def upload():
         
         # Check if file is present
         if "file" not in request.files:
-            return jsonify({"error": "missing_file"}), 400
+            return ErrorResponses.missing_file()
         
         file = request.files["file"]
         if file.filename == "":
-            return jsonify({"error": "empty_filename"}), 400
+            return ErrorResponses.empty_filename()
         
         file_bytes = file.read()
         if not file_bytes:
-            return jsonify({"error": "empty_file"}), 400
+            return ErrorResponses.empty_file()
         
         # Check file size (3MB limit)
         file_size = len(file_bytes)
         if file_size > MAX_FILE_SIZE:
-            return jsonify({
-                "error": "file_too_large",
-                "message": f"File size {file_size} bytes exceeds maximum {MAX_FILE_SIZE} bytes (3MB)",
-                "max_size": MAX_FILE_SIZE
-            }), 413
+            return ErrorResponses.file_size_too_large(f"File size {file_size} bytes exceeds maximum {MAX_FILE_SIZE} bytes (3MB)")
         
         # Get config from app
         api_key = current_app.config.get("FILEBASE_IPFS_API_KEY")
         bucket = current_app.config.get("FILEBASE_BUCKET", "ipfs-gateway")
         
         if not api_key:
-            return jsonify({"error": "filebase_not_configured"}), 500
+            return ErrorResponses.filebase_not_configured()
         
         # Upload to Filebase
         ETag, cid, mime_type = filebase_service.upload_to_filebase(
@@ -187,10 +184,10 @@ def upload():
         except:
             pass
         
-        return jsonify({"error": "upload_failed", "detail": str(e)}), 500
+        return ErrorResponses.upload_failed(str(e))
     except Exception as e:
         logger.exception("Unexpected error during upload: %s", e)
-        return jsonify({"error": "internal_error"}), 500
+        return ErrorResponses.internal_error()
 
 
 @bp.get("/retrieve/<cid>")
@@ -203,7 +200,7 @@ def retrieve(cid):
         bucket = current_app.config.get("FILEBASE_BUCKET", "ipfs-gateway")
         
         if not api_key:
-            return jsonify({"error": "filebase_not_configured"}), 500
+            return ErrorResponses.filebase_not_configured()
         
         # Check if file exists in DB
         file_record = None
@@ -232,8 +229,7 @@ def retrieve(cid):
                 )
                 session.add(audit)
                 session.commit()
-                # Return 404 to not reveal file existence
-                return jsonify({"error": "not_found"}), 404
+                return ErrorResponses.not_found("File")
             
             # Update last_access_at
             file_record.last_access_at = datetime.utcnow()
@@ -279,7 +275,7 @@ def retrieve(cid):
         except:
             pass
         
-        return jsonify({"error": "not_found"}), 404
+        return ErrorResponses.not_found("File")
     except filebase_service.FilebaseError as e:
         # Audit log for failed retrieve
         try:
@@ -294,10 +290,10 @@ def retrieve(cid):
         except:
             pass
         
-        return jsonify({"error": "retrieve_failed", "detail": str(e)}), 500
+        return ErrorResponses.retrieve_failed(str(e))
     except Exception as e:
         logger.exception("Unexpected error during retrieve: %s", e)
-        return jsonify({"error": "internal_error"}), 500
+        return ErrorResponses.internal_error()
 
 
 @bp.post("/pin/<cid>")
@@ -317,7 +313,7 @@ def pin(cid):
                 )
                 session.add(audit)
                 session.commit()
-                return jsonify({"error": "not_found"}), 404
+                return ErrorResponses.not_found(f"CID not found for pin: {cid}")
 
             file_record.pin_status = PinStatus.PINNED
             session.add(file_record)
@@ -337,7 +333,7 @@ def pin(cid):
             }), 200
     except Exception as e:
         logger.exception("Unexpected error during pin: %s", e)
-        return jsonify({"error": "internal_error"}), 500
+        return ErrorResponses.internal_error()
 
 
 @bp.post("/unpin/<cid>")
@@ -357,7 +353,7 @@ def unpin(cid):
                 )
                 session.add(audit)
                 session.commit()
-                return jsonify({"error": "not_found"}), 404
+                return ErrorResponses.not_found(f"CID not found for unpin: {cid}")
 
             file_record.pin_status = PinStatus.UNPINNED
             session.add(file_record)
@@ -377,4 +373,4 @@ def unpin(cid):
             }), 200
     except Exception as e:
         logger.exception("Unexpected error during unpin: %s", e)
-        return jsonify({"error": "internal_error"}), 500
+        return ErrorResponses.internal_error()

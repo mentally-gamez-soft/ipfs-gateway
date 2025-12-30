@@ -167,6 +167,69 @@
 
 ---
 
+### ✅ US-007: Standardized Error Handling (100%)
+**Status**: Completed  
+**Tests**: 39 passing (all existing tests still pass)  
+**Test Impact**: No new tests added, but all routes now use standardized error responses
+
+**What Was Implemented**:
+- Created `ErrorResponses` class with standardized error methods in `core/utils/errors.py`
+- Implemented `error_response()` helper function for flexible error formatting
+- Updated all routes to use consistent error response structure
+- Enhanced error messages with human-readable descriptions
+
+**Error Response Format**:
+```json
+{
+  "error": "error_code",
+  "message": "Human-readable error message",
+  "details": "Optional additional error details"
+}
+```
+
+**Files Changed**:
+- `core/utils/errors.py` (new file)
+- `core/routes/auth.py`
+- `core/routes/upload.py`
+- `core/utils/decorators.py`
+
+**Standardized Error Categories**:
+1. **Authentication (401)**:
+   - `missing_api_key`: API key not provided in header
+   - `invalid_api_key`: Invalid or non-existent API key
+
+2. **Authorization (403)**:
+   - `user_inactive`: User account is inactive
+   - `user_revoked`: User account has been revoked
+   - `forbidden`: Access denied
+   - `not_allowed`: Operation not allowed for this user
+
+3. **Validation (400)**:
+   - `missing_email`: Email field required
+   - `missing_file`: File field required
+   - `empty_filename`: Filename cannot be empty
+   - `empty_file`: File content cannot be empty
+
+4. **Not Found (404)**:
+   - `not_found`: Resource not found
+
+5. **Conflict (409)**:
+   - `user_exists`: User with email already exists
+
+6. **Server Errors (500)**:
+   - `internal_error`: Unexpected error occurred
+   - `filebase_not_configured`: Filebase service not configured
+   - `admin_key_not_configured`: Admin key not configured
+   - `upload_failed`: Failed to upload file to IPFS
+   - `retrieve_failed`: Failed to retrieve file from IPFS
+
+**Test Results**:
+- All 39 tests passing, 1 skipped
+- No test failures introduced by error handling changes
+- Maintained backward compatibility with existing error codes
+
+---
+
 ## Test Infrastructure & Patterns
 
 ### Database Setup
