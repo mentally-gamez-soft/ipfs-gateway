@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 
 from core.utils.decorators import require_api_key, require_admin_key
 from core.services import auth_service
+from core.utils.errors import ErrorResponses
 
 bp = Blueprint("auth", __name__)
 
@@ -11,14 +12,14 @@ def register():
     data = request.get_json(silent=True) or {}
     email = data.get("email")
     if not email:
-        return jsonify({"error": "missing_email"}), 400
+        return ErrorResponses.missing_email()
     try:
         user, api_key = auth_service.register_user(email)
         return jsonify({"email": user.email, "api_key": api_key}), 201
     except ValueError as e:
         if str(e) == "user_exists":
-            return jsonify({"error": "user_exists"}), 409
-        return jsonify({"error": "unknown_error"}), 500
+            return ErrorResponses.user_exists()
+        return ErrorResponses.internal_error()
 
 
 @bp.post("/status")
@@ -27,7 +28,7 @@ def status():
     api_key = request.headers.get("X-API-Key")
     result = auth_service.status_for_api_key(api_key)
     if not result:
-        return jsonify({"error": "invalid_api_key"}), 401
+        return ErrorResponses.invalid_api_key()
     return jsonify(result), 200
 
 
@@ -37,10 +38,10 @@ def revoke():
     data = request.get_json(silent=True) or {}
     email = data.get("email")
     if not email:
-        return jsonify({"error": "missing_email"}), 400
+        return ErrorResponses.missing_email()
     ok = auth_service.revoke_user(email)
     if not ok:
-        return jsonify({"error": "not_found"}), 404
+        return ErrorResponses.not_found("User")
     return jsonify({"status": "revoked"}), 200
 
 
@@ -50,10 +51,10 @@ def reactivate():
     data = request.get_json(silent=True) or {}
     email = data.get("email")
     if not email:
-        return jsonify({"error": "missing_email"}), 400
+        return ErrorResponses.missing_email()
     ok = auth_service.reactivate_user(email)
     if not ok:
-        return jsonify({"error": "not_found"}), 404
+        return ErrorResponses.not_found("User")
     return jsonify({"status": "active"}), 200
 
 
@@ -62,9 +63,9 @@ def renew():
     data = request.get_json(silent=True) or {}
     email = data.get("email")
     if not email:
-        return jsonify({"error": "missing_email"}), 400
+        return ErrorResponses.missing_email()
     api_key = auth_service.renew_api_key(email)
     if not api_key:
-        return jsonify({"error": "not_allowed"}), 403
+        return ErrorResponses.not_allowed()
     # In production this should be emailed to the user.
     return jsonify({"email": email, "api_key": api_key}), 200
