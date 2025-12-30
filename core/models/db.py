@@ -10,6 +10,12 @@ class UserStatus(str, PyEnum):
     REVOKED = "revoked"
 
 
+class UserRole(str, PyEnum):
+    STANDARD = "standard"
+    ADMIN = "admin"
+    PREMIUM = "premium"
+
+
 class PinStatus(str, PyEnum):
     UNPINNED = "unpinned"
     PINNING = "pinning"
@@ -26,6 +32,9 @@ class User(SQLModel, table=True):
     api_key_hash: str = Field(max_length=255)
     api_key_salt: Optional[str] = Field(default=None, max_length=255)
     status: UserStatus = Field(default=UserStatus.ACTIVE)
+    role: UserRole = Field(default=UserRole.STANDARD)
+    upload_count: int = Field(default=0)
+    upload_quota_reset_date: Optional[datetime] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     last_activity_at: Optional[datetime] = None
 
@@ -34,7 +43,7 @@ class User(SQLModel, table=True):
     audit_logs: list["AuditLog"] = Relationship(back_populates="user")
 
     def __repr__(self) -> str:
-        return f"User(id={self.id}, email={self.email}, status={self.status}, api_key_hash={self.api_key_hash}, api_key_salt={self.api_key_salt}, created_at={self.created_at}, last_activity_at={self.last_activity_at})"
+        return f"User(id={self.id}, email={self.email}, status={self.status}, role={self.role}, upload_count={self.upload_count}, created_at={self.created_at})"
 
 class File(SQLModel, table=True):
     """File model representing uploaded content on IPFS."""
@@ -46,6 +55,7 @@ class File(SQLModel, table=True):
     pin_status: PinStatus = Field(default=PinStatus.PINNED)
     original_filename: Optional[str] = Field(default=None, max_length=255)
     mime_type: Optional[str] = Field(default=None, max_length=100)
+    file_size: Optional[int] = Field(default=None)  # Size in bytes
     uploaded_at: datetime = Field(default_factory=datetime.utcnow)
     last_access_at: Optional[datetime] = None
 

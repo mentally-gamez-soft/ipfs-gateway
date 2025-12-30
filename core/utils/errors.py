@@ -137,7 +137,25 @@ class ErrorResponses:
             409,
             "A user with this email already exists"
         )
-    
+
+    @staticmethod
+    def file_size_too_large(details: Optional[str] = None):
+        return error_response(
+            "file_too_large",
+            413,
+            "File size exceeds the maximum allowed limit",
+            details
+        )
+
+    @staticmethod
+    def quota_exceeded(details: Optional[str] = None):
+        return error_response(
+            "quota_exceeded",
+            429,
+            "Monthly upload limit reached.",
+            details
+        )
+
     # Server Errors (500)
     @staticmethod
     def internal_error(details: Optional[str] = None):

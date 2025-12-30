@@ -3,20 +3,26 @@
 **Last Updated**: December 30, 2025  
 **Current Test Status**: ✅ 39 passing, 1 skipped (97.5% pass rate)  
 **Overall Project Progress**: 35.7% complete (5/14 user stories)
+**Current Test Status**: ✅ 48 passing, 1 skipped (97.9% pass rate)  
+**Overall Project Progress**: 42.9% complete (6/14 user stories)
 
 ---
 
 ## Executive Summary
 
 The IPFS Gateway API project has completed its first 5 foundational user stories with comprehensive test coverage:
+The IPFS Gateway API project has completed its first 6 foundational user stories with comprehensive test coverage:
 
 - **US-001**: Core scaffolding (Flask app) - 1 test
 - **US-002**: Database models (SQLModel) - 10 tests  
 - **US-003**: Authentication (API keys) - 4 tests
 - **US-004**: IPFS Filebase integration (boto3 + retry patterns) - 24 tests
 - **US-007**: Standardized error handling - 0 new tests (refactoring)
+- **US-005**: Content pinning (pin/unpin endpoints) - 6 tests
+- **US-006**: Security, validation & rate limiting - 9 tests
 
 **Total**: 39 tests covering models, auth, upload/retrieve, error responses, and full E2E flows
+**Total**: 48 tests covering models, auth, upload/retrieve, pinning, quotas, ownership, and full E2E flows
 
 ### Key Achievements ✨
 - ✅ Real PostgreSQL database integration tested
@@ -35,8 +41,8 @@ The IPFS Gateway API project has completed its first 5 foundational user stories
 | Models | 10 | User, File, AuditLog schemas |
 | Auth | 4 | Key generation, hashing, renewals |
 | Services | 9 | Filebase upload/retrieve, retry, circuit breaker |
-| API Routes | 5 | Upload, retrieve, error handling |
-| E2E Flows | 8 | Full stack (API → DB → S3) |
+| API Routes | 20 | Upload, retrieve, pin/unpin, quotas, ownership, file size |
+| E2E Flows | 9 | Full stack (API → DB → S3), pin/unpin flows |
 | Health/Misc | 3 | Health check, utilities |
 | **TOTAL** | **39** | **~32% of planned coverage** |
 
@@ -62,6 +68,7 @@ The IPFS Gateway API project has completed its first 5 foundational user stories
 - Not Found (404): not_found
 - Conflict (409): user_exists
 - Server Errors (500): internal_error, filebase_not_configured, upload_failed, retrieve_failed
+| **TOTAL** | **48** | **~42% of planned coverage** |
 
 ---
 

@@ -266,6 +266,45 @@ class TestServiceE2EFilebaseIntegrationAPI:
 
         assert upload_audit.created_at <= retrieve_audit.created_at
 
+    def test_api_pin_unpin_flow(self, client, test_user, db_session, filebase_available):
+        api_key = test_user["api_key"]
+        user_id = test_user["id"]
+
+        # Upload a file first
+        filename = f"api-pin-{secrets.token_hex(4)}.png"
+        image_bytes, _, mime_type = create_test_image(filename)
+
+        upload_resp = client.post(
+            "/upload",
+            data={"file": (io.BytesIO(image_bytes), filename)},
+            headers={"X-API-Key": api_key},
+        )
+        assert upload_resp.status_code == 201
+        cid = upload_resp.get_json()["cid"]
+
+        # Unpin
+        unpin_resp = client.post(f"/unpin/{cid}", headers={"X-API-Key": api_key})
+        assert unpin_resp.status_code == 200
+        assert unpin_resp.get_json()["pin_status"] == PinStatus.UNPINNED.value
+
+        stmt = select(File).where(File.cid == cid, File.user_id == user_id)
+        file_record = db_session.exec(stmt).first()
+        assert file_record.pin_status == PinStatus.UNPINNED
+
+        audit_unpin = db_session.exec(select(AuditLog).where(AuditLog.user_id == user_id, AuditLog.action == "unpin")).first()
+        assert audit_unpin is not None
+
+        # Pin again
+        pin_resp = client.post(f"/pin/{cid}", headers={"X-API-Key": api_key})
+        assert pin_resp.status_code == 200
+        assert pin_resp.get_json()["pin_status"] == PinStatus.PINNED.value
+
+        db_session.refresh(file_record)
+        assert file_record.pin_status == PinStatus.PINNED
+
+        audit_pin = db_session.exec(select(AuditLog).where(AuditLog.user_id == user_id, AuditLog.action == "pin")).first()
+        assert audit_pin is not None
+
     def test_api_unauthorized_retrieve_logged(self, client, test_user, db_session, filebase_available):
         api_key_a = test_user["api_key"]
         user_a_id = test_user["id"]

@@ -53,13 +53,13 @@
 ## Test Coverage Summary
 
 ### Test Statistics
-- **Total Tests**: 39 passing, 1 skipped
+- **Total Tests**: 48 passing, 1 skipped
 - **Test Suites**: 6 suites (unit, service, API, E2E, models, health)
-- **Code Coverage Areas**: Models, Auth, Upload/Retrieve, E2E flows
+- **Code Coverage Areas**: Models, Auth, Upload/Retrieve, Pin/Unpin, Quotas, Ownership, File Size, E2E flows
 
 ### Test Breakdown by Category
 
-#### Unit & Service Tests (33 tests)
+#### Unit & Service Tests (37 tests)
 - **Auth Service**: 2 tests
   - API key generation and hashing
   - Status and renewal flows
@@ -78,16 +78,18 @@
   - Registration, status, renew flow
   - Revoke and reactivate (admin-only)
   
-- **Upload Routes**: 5 tests
+- **Upload Routes**: 11 tests
   - Basic upload/retrieve flow
+  - Pin/unpin success scenarios
+  - Not found error handling
   - Authorization enforcement
-  - Error handling scenarios
   
 - **Health Check**: 1 test
   - API health endpoint
 
-#### E2E Integration Tests (8 tests, 1 skipped)
+#### E2E Integration Tests (9 tests, 1 skipped)
 - **Core Flow**: Upload → Retrieve → Audit flow ✅
+- **Pin/Unpin Flow**: Pin → Unpin with status tracking ✅
 - **Multi-user Scenarios**: Multiple uploads by same user ✅
 - **Security**: Unauthorized retrieve attempts ✅
 - **Error Handling**: 
