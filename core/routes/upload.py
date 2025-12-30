@@ -6,12 +6,15 @@ from datetime import datetime
 import io
 import logging
 import arrow
+import base64
 
 from core.utils.decorators import require_api_key
 from core.services import filebase_service
-from core.models.db import File, AuditLog, PinStatus, UserRole, User
+from core.models.db import File, AuditLog, PinStatus, UserRole, User, TaskStatus, TaskState
 from core.models.connection import get_session
 from core.utils.errors import ErrorResponses
+from core.tasks.upload_tasks import upload_file_task
+from core.tasks.pin_tasks import pin_content_task, unpin_content_task
 from sqlmodel import select
 
 bp = Blueprint("upload", __name__)
@@ -67,7 +70,7 @@ def check_and_update_quota(user, session):
 @bp.post("/upload")
 @require_api_key
 def upload():
-    """Upload a file to IPFS via Filebase."""
+    """Queue async upload task and return task_id."""
     try:
         user = getattr(g, 'user', None)
         logger.info(f"Upload initiated by user: {user.email if user else 'unknown'}")
@@ -110,95 +113,91 @@ def upload():
             logger.warning(f"Upload rejected - file too large ({file_size} bytes) for user: {user.email}")
             return ErrorResponses.file_size_too_large(f"File size {file_size} bytes exceeds maximum {MAX_FILE_SIZE} bytes (3MB)")
         
-        logger.info(f"File '{file.filename}' ({file_size} bytes) ready for upload by user: {user.email}")
+        logger.info(f"File '{file.filename}' ({file_size} bytes) ready for async upload by user: {user.email}")
         
         # Get config from app
-        api_key = current_app.config.get("FILEBASE_IPFS_API_KEY")
         bucket = current_app.config.get("FILEBASE_BUCKET", "ipfs-gateway")
         
-        if not api_key:
-            logger.error("Filebase IPFS API key not configured")
-            return ErrorResponses.filebase_not_configured()
+        # Encode file bytes as base64 for Celery serialization
+        file_bytes_b64 = base64.b64encode(file_bytes).decode('utf-8')
         
-        # Upload to Filebase
-        ETag, cid, mime_type = filebase_service.upload_to_filebase(
-            bucket=bucket,
-            file_bytes=file_bytes,
-            original_filename=file.filename,
+        # Queue the upload task
+        task = upload_file_task.apply_async(
+            args=[g.user.id, file_bytes_b64, file.filename, file_size, bucket],
+            routing_key="upload.file"
         )
         
-        # Persist File record and increment upload count
-        file_record = File(
-            cid=cid,
-            user_id=g.user.id,
-            original_filename=file.filename,
-            mime_type=mime_type,
-            file_size=file_size,
-        )
-        
-        # Get updated user data for response headers
-        updated_user = None
+        # Create TaskStatus record
         for session in get_session():
-            session.add(file_record)
-            
-            # Get user and increment upload count
-            stmt = select(User).where(User.id == g.user.id)
-            updated_user = session.exec(stmt).first()
-            updated_user.upload_count += 1
-            session.add(updated_user)
-            
-            # Create audit log entry
-            audit = AuditLog(
+            task_status = TaskStatus(
+                task_id=task.id,
                 user_id=g.user.id,
-                action="upload",
-                details=f"Uploaded {file.filename} with CID {cid}",
+                task_type="upload",
+                state=TaskState.PENDING,
             )
-            session.add(audit)
+            session.add(task_status)
             session.commit()
-            session.refresh(file_record)
-            session.refresh(updated_user)
+            break
         
-        logger.info(f"File successfully uploaded - CID: {cid}, User: {user.email}, Size: {file_size} bytes")
+        logger.info(f"Upload task {task.id} queued for user: {user.email}, file: {file.filename}")
         
-        # Prepare response with rate limit headers
-        response = jsonify({
-            "cid": cid,
-            "filename": file.filename,
-            "mime_type": mime_type,
-        })
-        
-        # Add rate limit headers
-        if updated_user.role == UserRole.STANDARD:
-            response.headers["X-RateLimit-Limit"] = str(STANDARD_USER_MONTHLY_QUOTA)
-            response.headers["X-RateLimit-Remaining"] = str(STANDARD_USER_MONTHLY_QUOTA - updated_user.upload_count)
-            if updated_user.upload_quota_reset_date:
-                response.headers["X-RateLimit-Reset"] = updated_user.upload_quota_reset_date.isoformat()
-        else:
-            # Admin/Premium have unlimited
-            response.headers["X-RateLimit-Limit"] = "unlimited"
-            response.headers["X-RateLimit-Remaining"] = "unlimited"
-            response.headers["X-RateLimit-Reset"] = "never"
-        
-        return response, 201
+        # Return task ID for status polling
+        return jsonify({
+            "task_id": task.id,
+            "message": "Upload task queued",
+            "status_url": f"/task/{task.id}"
+        }), 202
     
-    except filebase_service.FilebaseError as e:
-        logger.error(f"Filebase error during upload: {str(e)}")
-        # Audit log for failed upload
-        try:
-            for session in get_session():
-                audit = AuditLog(
-                    user_id=g.user.id,
-                    action="upload_failed",
-                    details=str(e),
-                )
-                session.add(audit)
-                session.commit()
-        except Exception as audit_err:
-            logger.warning(f"Failed to log upload error to audit log: {str(audit_err)}")
-        
-        return ErrorResponses.upload_failed(str(e))
     except Exception as e:
-        logger.exception("Unexpected error during upload: %s", e)
+        logger.exception(f"Error queuing upload task: {str(e)}")
+        return ErrorResponses.internal_error()
+
+
+@bp.get("/task/<task_id>")
+@require_api_key
+def get_task_status(task_id):
+    """Get status of an async task."""
+    try:
+        for session in get_session():
+            # Find task status
+            stmt = select(TaskStatus).where(TaskStatus.task_id == task_id)
+            task_status = session.exec(stmt).first()
+            
+            if not task_status:
+                return ErrorResponses.not_found("Task")
+            
+            # Verify task belongs to user
+            if task_status.user_id != g.user.id:
+                logger.warning(f"User {g.user.id} attempted to access task {task_id} owned by user {task_status.user_id}")
+                return ErrorResponses.not_found("Task")
+            
+            # Parse result if available
+            result_data = None
+            if task_status.result:
+                import json
+                try:
+                    result_data = json.loads(task_status.result)
+                except:
+                    result_data = task_status.result
+            
+            response = {
+                "task_id": task_status.task_id,
+                "task_type": task_status.task_type,
+                "state": task_status.state.value,
+                "created_at": task_status.created_at.isoformat(),
+                "updated_at": task_status.updated_at.isoformat(),
+            }
+            
+            if task_status.completed_at:
+                response["completed_at"] = task_status.completed_at.isoformat()
+            
+            if result_data:
+                response["result"] = result_data
+            
+            return jsonify(response), 200
+    
+    except Exception as e:
+        logger.exception(f"Error retrieving task status: {e}")
         return ErrorResponses.internal_error()
 
 
@@ -322,8 +321,9 @@ def retrieve(cid):
 @bp.post("/pin/<cid>")
 @require_api_key
 def pin(cid):
-    """Pin a file for the authenticated user."""
+    """Queue async pin task and return task_id."""
     try:
+        # Verify file exists and belongs to user
         for session in get_session():
             stmt = select(File).where(File.cid == cid, File.user_id == g.user.id)
             file_record = session.exec(stmt).first()
@@ -337,23 +337,34 @@ def pin(cid):
                 session.add(audit)
                 session.commit()
                 return ErrorResponses.not_found(f"CID not found for pin: {cid}")
-
-            file_record.pin_status = PinStatus.PINNED
-            session.add(file_record)
-
-            audit = AuditLog(
+            break
+        
+        # Queue the pin task
+        task = pin_content_task.apply_async(
+            args=[g.user.id, cid],
+            routing_key="pin.content"
+        )
+        
+        # Create TaskStatus record
+        for session in get_session():
+            task_status = TaskStatus(
+                task_id=task.id,
                 user_id=g.user.id,
-                action="pin",
-                details=f"Pinned CID {cid}",
+                task_type="pin",
+                state=TaskState.PENDING,
             )
-            session.add(audit)
+            session.add(task_status)
             session.commit()
-            session.refresh(file_record)
-
-            return jsonify({
-                "cid": cid,
-                "pin_status": file_record.pin_status.value,
-            }), 200
+            break
+        
+        logger.info(f"Pin task {task.id} queued for CID: {cid}")
+        
+        return jsonify({
+            "task_id": task.id,
+            "message": "Pin task queued",
+            "status_url": f"/task/{task.id}"
+        }), 202
+        
     except Exception as e:
         logger.exception("Unexpected error during pin: %s", e)
         return ErrorResponses.internal_error()
@@ -362,8 +373,9 @@ def pin(cid):
 @bp.post("/unpin/<cid>")
 @require_api_key
 def unpin(cid):
-    """Unpin a file for the authenticated user."""
+    """Queue async unpin task and return task_id."""
     try:
+        # Verify file exists and belongs to user
         for session in get_session():
             stmt = select(File).where(File.cid == cid, File.user_id == g.user.id)
             file_record = session.exec(stmt).first()
@@ -377,23 +389,34 @@ def unpin(cid):
                 session.add(audit)
                 session.commit()
                 return ErrorResponses.not_found(f"CID not found for unpin: {cid}")
-
-            file_record.pin_status = PinStatus.UNPINNED
-            session.add(file_record)
-
-            audit = AuditLog(
+            break
+        
+        # Queue the unpin task
+        task = unpin_content_task.apply_async(
+            args=[g.user.id, cid],
+            routing_key="pin.content"
+        )
+        
+        # Create TaskStatus record
+        for session in get_session():
+            task_status = TaskStatus(
+                task_id=task.id,
                 user_id=g.user.id,
-                action="unpin",
-                details=f"Unpinned CID {cid}",
+                task_type="unpin",
+                state=TaskState.PENDING,
             )
-            session.add(audit)
+            session.add(task_status)
             session.commit()
-            session.refresh(file_record)
-
-            return jsonify({
-                "cid": cid,
-                "pin_status": file_record.pin_status.value,
-            }), 200
+            break
+        
+        logger.info(f"Unpin task {task.id} queued for CID: {cid}")
+        
+        return jsonify({
+            "task_id": task.id,
+            "message": "Unpin task queued",
+            "status_url": f"/task/{task.id}"
+        }), 202
+        
     except Exception as e:
         logger.exception("Unexpected error during unpin: %s", e)
         return ErrorResponses.internal_error()

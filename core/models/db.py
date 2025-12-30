@@ -23,6 +23,14 @@ class PinStatus(str, PyEnum):
     UNPINNING = "unpinning"
 
 
+class TaskState(str, PyEnum):
+    PENDING = "pending"
+    STARTED = "started"
+    SUCCESS = "success"
+    FAILURE = "failure"
+    RETRY = "retry"
+
+
 class User(SQLModel, table=True):
     """User model representing gateway users."""
     __tablename__ = "users"
@@ -75,3 +83,21 @@ class AuditLog(SQLModel, table=True):
 
     # Relationships
     user: User = Relationship(back_populates="audit_logs")
+
+
+class TaskStatus(SQLModel, table=True):
+    """Model for tracking async task status."""
+    __tablename__ = "task_status"
+
+    id: Optional[int] = Field(default=None, primary_key=True)
+    task_id: str = Field(index=True, unique=True, max_length=255)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    task_type: str = Field(max_length=50)  # 'upload', 'pin', 'unpin'
+    state: TaskState = Field(default=TaskState.PENDING)
+    result: Optional[str] = Field(default=None)  # JSON result or error message
+    created_at: datetime = Field(default_factory=datetime.utcnow, index=True)
+    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    completed_at: Optional[datetime] = None
+
+    def __repr__(self) -> str:
+        return f"TaskStatus(task_id={self.task_id}, user_id={self.user_id}, task_type={self.task_type}, state={self.state})"
