@@ -69,7 +69,8 @@ def check_and_update_quota(user, session):
 def upload():
     """Upload a file to IPFS via Filebase."""
     try:
-        logger.info(f"upload user id: {getattr(g, 'user', None)}")
+        user = getattr(g, 'user', None)
+        logger.info(f"Upload initiated by user: {user.email if user else 'unknown'}")
         
         # Check quota first (before reading file)
         for session in get_session():
@@ -80,6 +81,7 @@ def upload():
             quota_ok, reset_humanized = check_and_update_quota(user, session)
             
             if not quota_ok:
+                logger.warning(f"Upload quota exceeded for user: {user.email}. Reset: {reset_humanized}")
                 return jsonify({
                     "error": "quota_exceeded",
                     "message": f"Monthly upload limit reached. Resets {reset_humanized}",
@@ -89,26 +91,33 @@ def upload():
         
         # Check if file is present
         if "file" not in request.files:
+            logger.warning(f"Upload attempt without file by user: {user.email}")
             return ErrorResponses.missing_file()
         
         file = request.files["file"]
         if file.filename == "":
+            logger.warning(f"Upload attempt with empty filename by user: {user.email}")
             return ErrorResponses.empty_filename()
         
         file_bytes = file.read()
         if not file_bytes:
+            logger.warning(f"Upload attempt with empty file by user: {user.email}")
             return ErrorResponses.empty_file()
         
         # Check file size (3MB limit)
         file_size = len(file_bytes)
         if file_size > MAX_FILE_SIZE:
+            logger.warning(f"Upload rejected - file too large ({file_size} bytes) for user: {user.email}")
             return ErrorResponses.file_size_too_large(f"File size {file_size} bytes exceeds maximum {MAX_FILE_SIZE} bytes (3MB)")
+        
+        logger.info(f"File '{file.filename}' ({file_size} bytes) ready for upload by user: {user.email}")
         
         # Get config from app
         api_key = current_app.config.get("FILEBASE_IPFS_API_KEY")
         bucket = current_app.config.get("FILEBASE_BUCKET", "ipfs-gateway")
         
         if not api_key:
+            logger.error("Filebase IPFS API key not configured")
             return ErrorResponses.filebase_not_configured()
         
         # Upload to Filebase
@@ -149,6 +158,8 @@ def upload():
             session.refresh(file_record)
             session.refresh(updated_user)
         
+        logger.info(f"File successfully uploaded - CID: {cid}, User: {user.email}, Size: {file_size} bytes")
+        
         # Prepare response with rate limit headers
         response = jsonify({
             "cid": cid,
@@ -171,6 +182,7 @@ def upload():
         return response, 201
     
     except filebase_service.FilebaseError as e:
+        logger.error(f"Filebase error during upload: {str(e)}")
         # Audit log for failed upload
         try:
             for session in get_session():
@@ -181,8 +193,8 @@ def upload():
                 )
                 session.add(audit)
                 session.commit()
-        except:
-            pass
+        except Exception as audit_err:
+            logger.warning(f"Failed to log upload error to audit log: {str(audit_err)}")
         
         return ErrorResponses.upload_failed(str(e))
     except Exception as e:
@@ -195,11 +207,15 @@ def upload():
 def retrieve(cid):
     """Retrieve a file from IPFS via Filebase."""
     try:
+        user = getattr(g, 'user', None)
+        logger.info(f"Retrieve initiated for CID: {cid} by user: {user.email if user else 'unknown'}")
+        
         # Get config from app
         api_key = current_app.config.get("FILEBASE_IPFS_API_KEY")
         bucket = current_app.config.get("FILEBASE_BUCKET", "ipfs-gateway")
         
         if not api_key:
+            logger.error("Filebase IPFS API key not configured")
             return ErrorResponses.filebase_not_configured()
         
         # Check if file exists in DB
@@ -210,6 +226,7 @@ def retrieve(cid):
             
             if not file_record:
                 # Audit log for not found attempt
+                logger.warning(f"Retrieve failed - CID not found: {cid} by user: {user.email if user else 'unknown'}")
                 audit = AuditLog(
                     user_id=g.user.id,
                     action="retrieve_not_found",
@@ -222,6 +239,7 @@ def retrieve(cid):
             # Check ownership (unless admin)
             if g.user.role != UserRole.ADMIN and file_record.user_id != g.user.id:
                 # Audit log for unauthorized access attempt
+                logger.warning(f"Unauthorized retrieve attempt - CID: {cid}, Requester: {user.email if user else 'unknown'}, Owner: {file_record.user_id}")
                 audit = AuditLog(
                     user_id=g.user.id,
                     action="retrieve_unauthorized",
@@ -236,6 +254,8 @@ def retrieve(cid):
             session.add(file_record)
             session.commit()
             session.refresh(file_record)
+        
+        logger.info(f"Retrieving file from Filebase - CID: {cid}, Filename: {file_record.original_filename}, Size: {file_record.file_size} bytes")
         
         # Retrieve from Filebase
         file_bytes = filebase_service.retrieve_from_filebase(
@@ -253,6 +273,8 @@ def retrieve(cid):
             session.add(audit)
             session.commit()
         
+        logger.info(f"File successfully retrieved - CID: {cid}, User: {user.email if user else 'unknown'}")
+        
         # Stream file
         return send_file(
             io.BytesIO(file_bytes),
@@ -262,6 +284,7 @@ def retrieve(cid):
         )
     
     except filebase_service.FilebaseNotFoundError:
+        logger.error(f"File not found in Filebase - CID: {cid}")
         # Audit log for not found
         try:
             for session in get_session():
