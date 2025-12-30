@@ -2,7 +2,7 @@
 
 - Priority: P1 (High)
 - Effort: 2 days (approx. 16h)
-- Status: In Progress
+- Status: Completed
 - Completion: 100%
 
 ## Description
@@ -12,8 +12,14 @@ Implement pin/unpin endpoints backed by Filebase/IPFS pinning service where appl
 - POST /pin/<cid> and POST /unpin/<cid> implemented. ✓
 - Pin status tracked in DB. ✓
 - Audit log created for pin/unpin operations. ✓
+- POST /pin/<cid> and POST /unpin/<cid> implemented. ✓
+- Pin status tracked in DB. ✓
+- Audit log created for pin/unpin operations. ✓
 
 ## Tasks Checklist
+- [x] TASK-005-01: Pin/unpin service integration abstraction (Effort: 6h)
+- [x] TASK-005-02: Implement endpoints & DB updates (Effort: 6h)
+- [x] TASK-005-03: Audit log entries for actions (Effort: 4h)
 - [x] TASK-005-01: Pin/unpin service integration abstraction (Effort: 6h)
 - [x] TASK-005-02: Implement endpoints & DB updates (Effort: 6h)
 - [x] TASK-005-03: Audit log entries for actions (Effort: 4h)

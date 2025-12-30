@@ -1,8 +1,8 @@
 # Backlog Summary (IPFS Gateway)
 
 **Last Updated**: December 30, 2025  
-**Overall Progress**: 35.7% (5/14 stories completed)  
-**Test Coverage**: 46 tests passing, 1 skipped (100% E2E coverage when Filebase available)
+**Overall Progress**: 42.9% (6/14 stories completed)  
+**Test Coverage**: 48 tests passing, 1 skipped (100% E2E coverage when Filebase available)
 
 ## Progress Overview
 
@@ -25,8 +25,8 @@
 | US-002 | P0 | 2 days | ✅ Completed | 100% |
 | US-003 | P0 | 3 days | ✅ Completed | 100% |
 | US-004 | P0 | 3 days | ✅ Completed | 100% |
-| US-005 | P1 | 2 days | ✅ Completed | 100% |
-| US-006 | P0 | 2 days | ⏳ Planned | 0% |
+| US-005 | P1 | 2 days | ⏳ Planned | 0% |
+| US-006 | P0 | 2 days | ✅ Completed | 100% |
 | US-007 | P1 | 1 day | ⏳ Planned | 0% |
 | US-008 | P1 | 2 days | ⏳ Planned | 0% |
 | US-009 | P1 | 3 days | ⏳ Planned | 0% |
@@ -37,7 +37,7 @@
 | US-014 | P1 | 2 days | ⏳ Planned | 0% |
 
 **Total Effort**: 36 days (~9 weeks)  
-**Completed Effort**: 13 days (36.1%)
+**Completed Effort**: 15 days (41.7%)
 
 ## Sequencing Guidance
 1. ✅ **Foundation**: US-001, US-002 (Done)
@@ -53,13 +53,13 @@
 ## Test Coverage Summary
 
 ### Test Statistics
-- **Total Tests**: 46 passing, 1 skipped
+- **Total Tests**: 48 passing, 1 skipped
 - **Test Suites**: 6 suites (unit, service, API, E2E, models, health)
-- **Code Coverage Areas**: Models, Auth, Upload/Retrieve, Pin/Unpin, E2E flows
+- **Code Coverage Areas**: Models, Auth, Upload/Retrieve, Pin/Unpin, Quotas, Ownership, File Size, E2E flows
 
 ### Test Breakdown by Category
 
-#### Unit & Service Tests (36 tests)
+#### Unit & Service Tests (37 tests)
 - **Auth Service**: 2 tests
   - API key generation and hashing
   - Status and renewal flows
