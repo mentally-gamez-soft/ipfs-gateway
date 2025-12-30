@@ -9,7 +9,7 @@ import arrow
 
 from core.utils.decorators import require_api_key
 from core.services import filebase_service
-from core.models.db import File, AuditLog, UserRole, User
+from core.models.db import File, AuditLog, PinStatus, UserRole, User
 from core.models.connection import get_session
 from sqlmodel import select
 
@@ -299,3 +299,82 @@ def retrieve(cid):
         logger.exception("Unexpected error during retrieve: %s", e)
         return jsonify({"error": "internal_error"}), 500
 
+
+@bp.post("/pin/<cid>")
+@require_api_key
+def pin(cid):
+    """Pin a file for the authenticated user."""
+    try:
+        for session in get_session():
+            stmt = select(File).where(File.cid == cid, File.user_id == g.user.id)
+            file_record = session.exec(stmt).first()
+
+            if not file_record:
+                audit = AuditLog(
+                    user_id=g.user.id,
+                    action="pin_not_found",
+                    details=f"CID not found for pin: {cid}",
+                )
+                session.add(audit)
+                session.commit()
+                return jsonify({"error": "not_found"}), 404
+
+            file_record.pin_status = PinStatus.PINNED
+            session.add(file_record)
+
+            audit = AuditLog(
+                user_id=g.user.id,
+                action="pin",
+                details=f"Pinned CID {cid}",
+            )
+            session.add(audit)
+            session.commit()
+            session.refresh(file_record)
+
+            return jsonify({
+                "cid": cid,
+                "pin_status": file_record.pin_status.value,
+            }), 200
+    except Exception as e:
+        logger.exception("Unexpected error during pin: %s", e)
+        return jsonify({"error": "internal_error"}), 500
+
+
+@bp.post("/unpin/<cid>")
+@require_api_key
+def unpin(cid):
+    """Unpin a file for the authenticated user."""
+    try:
+        for session in get_session():
+            stmt = select(File).where(File.cid == cid, File.user_id == g.user.id)
+            file_record = session.exec(stmt).first()
+
+            if not file_record:
+                audit = AuditLog(
+                    user_id=g.user.id,
+                    action="unpin_not_found",
+                    details=f"CID not found for unpin: {cid}",
+                )
+                session.add(audit)
+                session.commit()
+                return jsonify({"error": "not_found"}), 404
+
+            file_record.pin_status = PinStatus.UNPINNED
+            session.add(file_record)
+
+            audit = AuditLog(
+                user_id=g.user.id,
+                action="unpin",
+                details=f"Unpinned CID {cid}",
+            )
+            session.add(audit)
+            session.commit()
+            session.refresh(file_record)
+
+            return jsonify({
+                "cid": cid,
+                "pin_status": file_record.pin_status.value,
+            }), 200
+    except Exception as e:
+        logger.exception("Unexpected error during unpin: %s", e)
+        return jsonify({"error": "internal_error"}), 500

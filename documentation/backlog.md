@@ -8,9 +8,9 @@
 
 | Status | Count | Stories |
 |--------|-------|---------|
-| ✅ Completed | 4 | US-001, US-002, US-003, US-004 |
+| ✅ Completed | 5 | US-001, US-002, US-003, US-004, US-005 |
 | 🔄 In Progress | 0 | - |
-| ⏳ Planned | 10 | US-005, US-006, US-007, US-008, US-009, US-010, US-011, US-012, US-013, US-014 |
+| ⏳ Planned | 9 | US-006, US-007, US-008, US-009, US-010, US-011, US-012, US-013, US-014 |
 
 ## Prioritization Overview
 - P0 (Critical): US-001 ✅, US-002 ✅, US-003 ✅, US-004 ✅, US-006, US-010, US-013
@@ -78,16 +78,18 @@
   - Registration, status, renew flow
   - Revoke and reactivate (admin-only)
   
-- **Upload Routes**: 5 tests
+- **Upload Routes**: 11 tests
   - Basic upload/retrieve flow
+  - Pin/unpin success scenarios
+  - Not found error handling
   - Authorization enforcement
-  - Error handling scenarios
   
 - **Health Check**: 1 test
   - API health endpoint
 
-#### E2E Integration Tests (8 tests, 1 skipped)
+#### E2E Integration Tests (9 tests, 1 skipped)
 - **Core Flow**: Upload → Retrieve → Audit flow ✅
+- **Pin/Unpin Flow**: Pin → Unpin with status tracking ✅
 - **Multi-user Scenarios**: Multiple uploads by same user ✅
 - **Security**: Unauthorized retrieve attempts ✅
 - **Error Handling**: 

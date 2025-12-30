@@ -7,8 +7,8 @@ import pytest
 import io
 from unittest.mock import patch, Mock
 from core import create_app
-from sqlmodel import Session
-from core.models.db import User, UserStatus, UserRole, File, AuditLog
+from sqlmodel import Session, select
+from core.models.db import User, UserStatus, File, AuditLog, PinStatus, UserRole
 from core.services.auth_service import generate_api_key, hash_api_key
 from core.models.connection import get_session
 
@@ -151,6 +151,80 @@ class TestRetrieveRoute:
         """Should return 401 if auth header missing"""
         response = client.get("/retrieve/QmTest123")
         
+        assert response.status_code == 401
+
+
+class TestPinRoutes:
+    """Tests for POST /pin/<cid> and /unpin/<cid> endpoints"""
+
+    def _create_file(self, db_session, user_id: int, cid: str, status: PinStatus = PinStatus.UNPINNED):
+        file_record = File(
+            cid=cid,
+            user_id=user_id,
+            pin_status=status,
+            original_filename=f"{cid}.txt",
+            mime_type="text/plain",
+        )
+        db_session.add(file_record)
+        db_session.commit()
+        return file_record
+
+    def test_pin_success(self, client, api_key, db_session):
+        cid = "QmToPin"
+        user_id = db_session.exec(select(User.id).where(User.email == "test@example.com")).first()
+        self._create_file(db_session, user_id, cid, PinStatus.UNPINNED)
+
+        response = client.post(f"/pin/{cid}", headers={"X-API-Key": api_key})
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["cid"] == cid
+        assert data["pin_status"] == PinStatus.PINNED.value
+
+        # Verify DB state
+        refreshed = db_session.exec(select(File).where(File.cid == cid)).first()
+        assert refreshed.pin_status == PinStatus.PINNED
+
+        # Verify audit log
+        audit = db_session.exec(select(AuditLog).where(AuditLog.user_id == user_id, AuditLog.action == "pin")).first()
+        assert audit is not None
+        assert cid in audit.details
+
+    def test_unpin_success(self, client, api_key, db_session):
+        cid = "QmToUnpin"
+        user_id = db_session.exec(select(User.id).where(User.email == "test@example.com")).first()
+        self._create_file(db_session, user_id, cid, PinStatus.PINNED)
+
+        response = client.post(f"/unpin/{cid}", headers={"X-API-Key": api_key})
+        assert response.status_code == 200
+        data = response.get_json()
+        assert data["cid"] == cid
+        assert data["pin_status"] == PinStatus.UNPINNED.value
+
+        refreshed = db_session.exec(select(File).where(File.cid == cid)).first()
+        assert refreshed.pin_status == PinStatus.UNPINNED
+
+        audit = db_session.exec(select(AuditLog).where(AuditLog.user_id == user_id, AuditLog.action == "unpin")).first()
+        assert audit is not None
+        assert cid in audit.details
+
+    def test_pin_not_found(self, client, api_key):
+        response = client.post("/pin/QmMissing", headers={"X-API-Key": api_key})
+        assert response.status_code == 404
+        data = response.get_json()
+        assert data["error"] == "not_found"
+
+    def test_unpin_not_found(self, client, api_key):
+        response = client.post("/unpin/QmMissing", headers={"X-API-Key": api_key})
+        assert response.status_code == 404
+        data = response.get_json()
+        assert data["error"] == "not_found"
+
+    def test_pin_requires_auth(self, client):
+        response = client.post("/pin/QmTest")
+        assert response.status_code == 401
+
+    def test_unpin_requires_auth(self, client):
+        response = client.post("/unpin/QmTest")
         assert response.status_code == 401
 
 
