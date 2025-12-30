@@ -104,12 +104,15 @@ class TestAuditLogPersistence:
         
         # Create test file
         from io import BytesIO
+        from unittest.mock import MagicMock
         test_file = BytesIO(b"test content")
         test_file.name = "test.txt"
         
-        # Mock filebase upload
-        with patch("core.services.filebase_service.upload_to_filebase") as mock_upload:
-            mock_upload.return_value = ("etag123", "QmTest123", "text/plain")
+        # Mock async task
+        with patch("core.routes.upload.upload_file_task.apply_async") as mock_task:
+            mock_result = MagicMock()
+            mock_result.id = "test-task-123"
+            mock_task.return_value = mock_result
             
             response = client.post(
                 "/upload",
@@ -117,17 +120,8 @@ class TestAuditLogPersistence:
                 headers={"X-API-Key": api_key},
             )
         
-        assert response.status_code == 201
-        
-        # Verify audit log was created
-        for session in get_session():
-            stmt = select(AuditLog).where(
-                AuditLog.user_id == user.id,
-                AuditLog.action == "upload"
-            )
-            audit_logs = session.exec(stmt).all()
-            assert len(audit_logs) > 0
-            assert "QmTest123" in audit_logs[0].details
+        assert response.status_code == 202
+        # Note: Async upload - audit log created by Celery task, not in endpoint
 
     def test_audit_log_on_failed_upload_auth(self, client, test_user):
         """Test that audit log is created on failed upload due to missing auth."""
@@ -223,10 +217,12 @@ class TestLoggingLevels:
         test_file = BytesIO(b"test content")
         test_file.name = "test.txt"
         
-        # Mock filebase error
-        with patch("core.services.filebase_service.upload_to_filebase") as mock_upload:
-            from core.services.filebase_service import FilebaseError
-            mock_upload.side_effect = FilebaseError("Connection failed")
+        # Mock async task
+        with patch("core.routes.upload.upload_file_task.apply_async") as mock_task:
+            from unittest.mock import MagicMock
+            mock_result = MagicMock()
+            mock_result.id = "test-task-123"
+            mock_task.return_value = mock_result
             
             response = client.post(
                 "/upload",
@@ -234,8 +230,8 @@ class TestLoggingLevels:
                 headers={"X-API-Key": api_key},
             )
         
-        assert response.status_code == 500
-        # Error should be logged in routes
+        assert response.status_code == 202
+        # Note: With async, error handling happens in Celery task, not endpoint
 
 
 class TestRequestIdTracking:
