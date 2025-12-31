@@ -156,6 +156,7 @@ def create_test_image(filename: str, size: tuple = (100, 100), color: tuple | No
 class TestE2EFilebaseIntegration:
     """End-to-end tests for complete Filebase integration."""
 
+    @pytest.mark.vcr
     def test_e2e_upload_retrieve_audit_flow(self, test_user, db_session, filebase_available, s3_bucket):
         """
         E2E test: Upload image → Retrieve by CID → Verify audit logs.
@@ -170,6 +171,7 @@ class TestE2EFilebaseIntegration:
         7. Verification of all metadata
         
         Requires valid FILEBASE_IPFS_API_KEY in .env file.
+        VCR cassette recorded on first run, replayed on subsequent runs.
         """
         assert filebase_available == True, "Filebase API not available"
 
@@ -208,7 +210,12 @@ class TestE2EFilebaseIntegration:
 class TestServiceE2EFilebaseIntegrationAPI:
     """API-backed E2E tests that verify DB persistence and audit logs."""
 
+    @pytest.mark.vcr
     def test_api_upload_retrieve_audit_flow(self, client, test_user, db_session, filebase_available):
+        """
+        API E2E test with VCR cassette for Filebase API calls.
+        Records: POST /upload HTTP interaction with Filebase
+        """
         api_key = test_user["api_key"]
         user_id = test_user["id"]
 
@@ -233,13 +240,12 @@ class TestServiceE2EFilebaseIntegrationAPI:
         # Async flow means file record created by Celery task, not immediately available
         # Full E2E test would require Celery worker running and task status polling
 
-    def test_api_pin_unpin_flow(self, client, test_user, db_session, filebase_available, s3_bucket):
-        assert retrieve_audit is not None
-        assert cid in retrieve_audit.details
-
-        assert upload_audit.created_at <= retrieve_audit.created_at
-
-    def test_api_pin_unpin_flow(self, client, test_user, db_session, filebase_available):
+    @pytest.mark.vcr
+    def test_api_pin_unpin_flow_api(self, client, test_user, db_session, filebase_available):
+        """
+        API E2E test for pin/unpin flow with VCR cassette.
+        Records: POST /pin/<cid> and POST /unpin/<cid> HTTP interactions.
+        """
         api_key = test_user["api_key"]
         user_id = test_user["id"]
 
@@ -258,7 +264,12 @@ class TestServiceE2EFilebaseIntegrationAPI:
         # Note: E2E async flow would require Celery worker + task polling
         # Full pin/unpin testing requires completed upload with file record
 
+    @pytest.mark.vcr
     def test_api_unauthorized_retrieve_logged(self, client, test_user, db_session, filebase_available):
+        """
+        API E2E test for security with VCR cassette.
+        Records: POST /upload HTTP interaction with Filebase.
+        """
         api_key_a = test_user["api_key"]
         user_a_id = test_user["id"]
 
