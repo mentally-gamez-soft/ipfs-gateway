@@ -96,22 +96,24 @@ uv run python -m pytest tests/ --collect-only -v
 ## 📊 Current Test Status
 
 ```
-Total:           71 ✅ passing + 1 ⊘ skipped = 72 collected
-Categories:      7 (models, auth, services, API, E2E, logging, health)
-Pass Rate:       98.6%
-Code Coverage:   ~45%
-Execution Time:  ~39.85 seconds
+Total:           79 ✅ passing + 1 ⊘ skipped = 80 collected
+Categories:      8 (models, auth, services, API, async, E2E, logging, health)
+Pass Rate:       98.8%
+Code Coverage:   ~55%
+Execution Time:  ~42.15 seconds
 
 Breakdown:
-├─ Models:              10 tests ✅
+├─ Models:              11 tests ✅
 ├─ Auth Services:        4 tests ✅
 ├─ Filebase Service:     9 tests ✅
 ├─ Upload Routes:        5 tests ✅
-├─ Logging Tests:       16 tests ✅ (NEW - US-008)
-├─ E2E Flows:            8 tests ✅ (1 skipped)
-└─ Health/Misc:          3 tests ✅
+├─ Pin Routes:           6 tests ✅
+├─ Logging Tests:       16 tests ✅ (US-008)
+├─ Async Tasks:          8 tests ✅ (NEW - US-009)
+├─ E2E Flows:            9 tests ✅ (1 skipped)
+└─ Health/Misc:          2 tests ✅
 
-User Stories Coverage (US-001 to US-008): 100% ✅
+User Stories Coverage (US-001 to US-009): 100% ✅
 ├─ US-001: Health Check & Monitoring
 ├─ US-002: Authentication & API Key Management
 ├─ US-003: File Upload Service
@@ -119,7 +121,9 @@ User Stories Coverage (US-001 to US-008): 100% ✅
 ├─ US-005: Content Pinning
 ├─ US-006: Security & Rate Limiting
 ├─ US-007: Error Handling
-└─ US-008: Logging, Audit & Monitoring ✅ JUST COMPLETED
+├─ US-008: Logging, Audit & Monitoring
+└─ US-009: Asynchronous Tasks (Celery + Redis) ✅ JUST COMPLETED
+```
 ```
 
 ---
