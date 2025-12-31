@@ -10,6 +10,7 @@ dependencies = [
     "Flask==3.0.0",
     "python-dotenv==1.0.1",
     "pytest==8.0.0",
+    "pytest-cov==4.1.0",
     "SQLModel==0.0.16",
     "alembic==1.13.1",
     "sqlalchemy>=2.0.25,<2.1",
@@ -23,9 +24,39 @@ dependencies = [
     "arrow>=1.4.0",
     "celery>=5.4.0",
     "redis>=5.2.0",
+    "Pillow==11.0.0",
 ]
 
 [tool.pytest.ini_options]
 filterwarnings =  [
     'ignore::DeprecationWarning',
 ]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+
+[tool.coverage.run]
+source = ["core"]
+branch = true
+omit = [
+    "*/tests/*",
+    "*/__init__.py",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+precision = 2
+show_missing = true
+skip_covered = false
+
+[tool.coverage.html]
+directory = "htmlcov"
