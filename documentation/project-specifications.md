@@ -141,6 +141,12 @@
     Set up a local development environment with Python, Flask, PostgreSQL, Celery, Redis, Docker, and other necessary tools and libraries. The package manager `uv` is used and already setup to install the required Python packages listed in the `pyproject.toml` file. The virtual environment tool `venv` is already set at the directory .venv. Ensure that all dependencies are installed and configured correctly for development and testing purposes. 
     Make sure to fix the versions of the packages in the requirements files to ensure consistency across different development environments. No auto upgrading of packages will be allowed without prior approval.
 
+    **Database Configuration**:
+    - **Development**: Local PostgreSQL database (`DATABASE_URL`): `postgresql+psycopg2://user:pass@localhost:5432/ipfs_gateway`
+    - **Staging/Production**: Remote PostgreSQL database (`DATABASE_URL_PROD`): `postgresql+psycopg2://myuser:mypass@my-server.com:5432/ipfs_gateway`
+    - Both environment variables must be configured in the .env file
+    - The application automatically selects the appropriate database based on the APP_ENV setting
+
 2. **Staging environment**:
 
     Help me to set up a staging environment step by step on GCP with GAE for testing and pre-production purposes.
@@ -150,6 +156,8 @@
     - Configure GAE for the project.
     - Set up a PostgreSQL database instance on GCP.
     - Configure environment variables and secrets for the staging environment.
+
+    **Database Setup**: The staging and production environments use a remote PostgreSQL database server. Connection details are managed through the DATABASE_URL_PROD environment variable, which must be securely configured in the deployment environment.
 
 3. **Access to IPFS network**: 
 
@@ -195,6 +203,16 @@ The API will follow RESTful principles and will include the following endpoints:
 1. **User Model**: Represents users of the IPFS gateway, including fields for email, API key, status (active, inactive, revoked), and timestamps for creation and last activity.
 2. **File Model**: Represents files uploaded to the IPFS network, including fields for CID, user ID (foreign key to User model), pin status, and timestamps for upload and last access.
 3. **Audit Log Model**: Represents audit logs for tracking API requests and actions, including fields for user ID, action type, timestamp, and additional details. This model should be available only to the administrator API key.
+
+### Database Infrastructure
+1. **Development Database**: Local PostgreSQL instance running on localhost:5432 for development and testing.
+2. **Production Database**: Remote PostgreSQL server (my-server.com:5432) for staging and production environments.
+3. **Environment Variables**:
+   - `DATABASE_URL`: Used for development environment (local PostgreSQL)
+   - `DATABASE_URL_PROD`: Used for staging and production environments (remote PostgreSQL)
+4. **Connection Management**: SQLAlchemy connection pooling configured for optimal performance in production.
+5. **Migrations**: Alembic migrations must be tested in development before applying to production.
+6. **Security**: SSL/TLS encryption enabled for production database connections, credentials stored securely in environment variables.
 
 ### Testing Strategy
 1. **Unit Tests**: Write unit tests for individual functions and methods to ensure they work as expected.
