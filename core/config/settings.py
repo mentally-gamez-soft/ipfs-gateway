@@ -1,5 +1,10 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+
+def get_prod_db_url():
+    """Get production database URL or fall back to default."""
+    return os.getenv("DATABASE_URL_PROD", "postgresql+psycopg2://user:pass@localhost:5432/ipfs_gateway")
 
 
 @dataclass
@@ -36,12 +41,18 @@ class DevConfig(BaseConfig):
     DEBUG = True
 
 
+@dataclass
 class StagingConfig(BaseConfig):
-    DEBUG = False
+    DEBUG: bool = False
+    # Use production database for staging environment
+    DATABASE_URL: str = field(default_factory=get_prod_db_url)
 
 
+@dataclass
 class ProdConfig(BaseConfig):
-    DEBUG = False
+    DEBUG: bool = False
+    # Use production database for production environment
+    DATABASE_URL: str = field(default_factory=get_prod_db_url)
 
 
 def get_config(env: str | None = None):
