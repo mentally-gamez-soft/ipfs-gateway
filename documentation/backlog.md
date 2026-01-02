@@ -1,20 +1,20 @@
 # Backlog Summary (IPFS Gateway)
 
-**Last Updated**: December 31, 2025  
-**Overall Progress**: 64.3% (9/14 stories completed)  
+**Last Updated**: January 2, 2026  
+**Overall Progress**: 66.7% (10/15 stories completed)  
 **Test Coverage**: 79 tests passing, 1 skipped (98.8% pass rate)
 
 ## Progress Overview
 
 | Status | Count | Stories |
 |--------|-------|---------|
-| ✅ Completed | 9 | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-008, US-009, US-010 |
+| ✅ Completed | 10 | US-001, US-002, US-003, US-004, US-005, US-006, US-007, US-008, US-009, US-010, US-015 |
 | 🔄 In Progress | 0 | - |
 | ⏳ Planned | 4 | US-011, US-012, US-013, US-014 |
 
 ## Prioritization Overview
-- P0 (Critical): US-001 ✅, US-002 ✅, US-003 ✅, US-004 ✅, US-006 ✅, US-010, US-013
-- P1 (High): US-005 ✅, US-007 ✅, US-008, US-011, US-014
+- P0 (Critical): US-001 ✅, US-002 ✅, US-003 ✅, US-004 ✅, US-006 ✅, US-010 ✅, US-013, US-015 ✅
+- P1 (High): US-005 ✅, US-007 ✅, US-008 ✅, US-011, US-014
 - P2 (Medium): US-012
 
 ## Story Effort Estimates & Status
@@ -35,9 +35,10 @@
 | US-012 | P2 | 2 days | ⏳ Planned | 0% |
 | US-013 | P0 | 3 days | ⏳ Planned | 0% |
 | US-014 | P1 | 2 days | ⏳ Planned | 0% |
+| US-015 | P0 | 2 days | ✅ Completed | 100% |
 
-**Total Effort**: 36 days (~9 weeks)  
-**Completed Effort**: 24 days (66.7%)
+**Total Effort**: 38 days (~9.5 weeks)  
+**Completed Effort**: 26 days (68.4%)
 
 ## Sequencing Guidance
 1. ✅ **Foundation**: US-001, US-002 (Done)
@@ -47,7 +48,8 @@
 5. ✅ **Observability**: US-008 (Done)
 6. ✅ **Async Processing**: US-009 (Done)
 7. ✅ **Quality Gates**: US-010 (Done)
-8. **Packaging & Deploy**: US-011, US-012, US-013
+8. ✅ **Production Database**: US-015 (Done)
+9. **Packaging & Deploy**: US-011, US-012, US-013
 9. **Documentation**: US-014
 
 ## Test Coverage Summary
@@ -105,6 +107,58 @@
 - **Fixtures**: User creation, test images, Filebase availability checks
 - **Retry Logic**: Tested with exponential backoff (tenacity)
 - **Circuit Breaker**: Pybreaker pattern validation (fail_max=5, reset_timeout=60s)
+
+## Links
+- Stories: see `user-stories/`
+
+---
+
+## Recent Completions
+
+### ✅ US-015: Production Database Setup (P0) - Completed Jan 2, 2026
+
+**Status**: ✅ Completed (100%)  
+**Effort**: 2 days (16h)  
+**Test Impact**: All 79 tests passing
+
+#### What Was Delivered
+- Production database configuration with environment-specific settings
+- Connection pooling optimized for remote database access
+- Database connectivity test script for validation
+- Documentation updates across all project files
+
+#### Technical Implementation
+1. **Environment Configuration**
+   - Added `DATABASE_URL_PROD` for remote PostgreSQL server
+   - Development continues using local PostgreSQL (localhost:5432)
+   - Staging/production auto-switch to production database
+
+2. **Connection Pooling** (Production Only)
+   - Pool size: 10 base connections
+   - Max overflow: 20 additional connections under load
+   - Pool timeout: 30 seconds
+   - Connection recycle: 1 hour (prevents stale connections)
+   - Pre-ping enabled: validates connections before use
+   - Statement timeout: 30 seconds (prevents hanging queries)
+
+3. **Testing & Validation**
+   - Created `scripts/test_db_connection.py` for connectivity checks
+   - Verified both development (PostgreSQL 15.15) and production (PostgreSQL 17.5) connections
+   - All 79 existing tests continue to pass
+   - Migration file ready for production deployment
+
+#### Files Modified
+- `core/config/settings.py`: Added `get_prod_db_url()` helper, updated StagingConfig/ProdConfig
+- `core/models/connection.py`: Implemented environment-aware connection pooling
+- `.env`: Added DATABASE_URL_PROD with production credentials
+- `documentation/project-specifications.md`: Added Database Infrastructure section
+
+#### Next Steps
+- Deploy to staging environment to test with production database
+- Run migrations on production database when ready
+- Monitor connection pool metrics in production
+
+---
 
 ## Links
 - Stories: see `user-stories/`
