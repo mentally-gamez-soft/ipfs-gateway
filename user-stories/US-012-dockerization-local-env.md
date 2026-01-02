@@ -2,8 +2,8 @@
 
 - Priority: P2 (Medium)
 - Effort: 2 days (approx. 16h)
-- Status: Not started
-- Completion: 0%
+- Status: In Progress (90% complete)
+- Completion: 90%
 
 ## Description
 Create Dockerfile and docker-compose to run the app with PostgreSQL and Redis locally or from the remote production environment. Make sure to structure docker folders as such from the root project IPFS-GATEWAY/:
