@@ -1,20 +1,55 @@
-version: '3.8'
-
 services:
+  # Flask API application
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ipfs-gateway-app
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://user:pass@db:5432/ipfs_gateway
+      - DATABASE_URL_PROD=postgresql+psycopg2://user:pass@db:5432/ipfs_gateway
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - APP_ENV=development
+      - DEBUG=true
+      - FILEBASE_IPFS_API_KEY=${FILEBASE_IPFS_API_KEY}
+      - FILEBASE_BUCKET=${FILEBASE_BUCKET}
+      - S3_ACCESS_KEY=${S3_ACCESS_KEY}
+      - S3_SECRET_ACCESS_KEY=${S3_SECRET_ACCESS_KEY}
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - .:/app
+      - logs:/app/logs
+    networks:
+      - ipfs-gateway-network
+    command: >
+      sh -c "
+      python -m alembic upgrade head &&
+      gunicorn --bind 0.0.0.0:5000 --workers 4 --worker-class sync --timeout 120 --reload main:app
+      "
+
   # PostgreSQL database for development
-  postgres:
+  db:
     image: postgres:15-alpine
     container_name: ipfs-gateway-postgres
     environment:
       POSTGRES_DB: ipfs_gateway
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: pass
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U user -d ipfs_gateway"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -42,6 +77,8 @@ volumes:
   postgres_data:
     driver: local
   redis_data:
+    driver: local
+  logs:
     driver: local
 
 networks:
