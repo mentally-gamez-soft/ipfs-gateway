@@ -2,11 +2,22 @@
 
 - Priority: P2 (Medium)
 - Effort: 2 days (approx. 16h)
-- Status: Not started
-- Completion: 0%
+- Status: In Progress (90% complete)
+- Completion: 90%
 
 ## Description
-Create Dockerfile and docker-compose to run the app with PostgreSQL and Redis locally. The image creation of the application should allow the developers to indicate a revision version in the format 1.0.0 (standardized number versioning for application). The image file creation should be done through a shell script that will propose this different menu:
+Create Dockerfile and docker-compose to run the app with PostgreSQL and Redis locally or from the remote production environment. Make sure to structure docker folders as such from the root project IPFS-GATEWAY/:
+  
+  - docker/dev/ containing:
+    - app/ Dockerfile for the Flask application
+    - compose/ docker-compose.yaml to set up services (PostgreSQL, Redis, Flask app)
+  - docker/prod/ containing:
+    - app/ Dockerfile for the Flask application optimized for two type of production servers:
+        1. For a remote specific machine using best practices (multi-stage build, smaller base image, etc.) and gunicorn setup with nginx as reverse proxy
+        2. For GAE deployment (if different from the dev Dockerfile)
+    - compose/ docker-compose.yaml for production-like setup (if needed)
+
+ The image creation of the application should allow the developers to indicate a revision version in the format 1.0.0 (standardized number versioning for application). The image file creation should be done through a shell script that will propose this different menu:
 1. define a version number for the application. A version number should be proposed by the CLI according to the choice of the user: major/ minor/ fix. To achieve this it is needed to modify the models of the application and add a APP_VERSION table with the history of the different versions and a status (active, stale)
 2. List all the already existing versions of the application
 3. Create a new image of the application with the selected version number
