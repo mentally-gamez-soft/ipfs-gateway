@@ -9,7 +9,7 @@ services:
       - "5000:5000"
     environment:
       - DATABASE_URL=postgresql+psycopg2://user:pass@db:5432/ipfs_gateway
-      - DATABASE_URL_PROD=postgresql+psycopg2://user:pass@db:5432/ipfs_gateway
+      - DATABASE_URL_PROD=${DATABASE_URL_PROD}
       - REDIS_URL=redis://redis:6379/0
       - CELERY_BROKER_URL=redis://redis:6379/0
       - CELERY_RESULT_BACKEND=redis://redis:6379/0
