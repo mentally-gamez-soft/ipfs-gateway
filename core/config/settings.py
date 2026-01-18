@@ -67,7 +67,6 @@ class StagingConfig(BaseConfig):
             os.environ[key] = os.environ.get(key) or load_secret(PROJECT_ID, key)
     # Use production database for staging environment
     DATABASE_URL: str = os.getenv("DATABASE_URL_PROD", get_prod_db_url())
-    print("StagingConfig - secrets loaded from Secret Manager.")
 
 
 @dataclass
@@ -79,10 +78,11 @@ class ProdConfig(BaseConfig):
 
 def get_config(env: str | None = None):
     env = env or os.getenv("APP_ENV", "development")
+    print(f"Loading configuration for environment: {env}")
     if env == "development":
         return DevConfig()
-    if env == "staging":
+    elif env == "staging":
         return StagingConfig()
-    if env == "production":
+    elif env == "production":
         return ProdConfig()
     return DevConfig()

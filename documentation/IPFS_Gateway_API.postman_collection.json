@@ -1,0 +1,314 @@
+{
+  "info": {
+    "_postman_id": "ipfs-gateway-api-v1",
+    "name": "IPFS Gateway API",
+    "description": "Collection for interacting with IPFS Gateway API\n\n**Base URL**: http://localhost:5000 (development) or https://ipfs-gateway-staging.appspot.com (staging)\n\n**Authentication**: API Key via X-API-Key header",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/register",
+              "host": ["{{base_url}}"],
+              "path": ["register"]
+            },
+            "description": "Register a new user and receive an API key"
+          },
+          "response": []
+        },
+        {
+          "name": "Check User Status",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/status",
+              "host": ["{{base_url}}"],
+              "path": ["status"]
+            },
+            "description": "Get current user status and information"
+          },
+          "response": []
+        },
+        {
+          "name": "Renew API Key",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/renew",
+              "host": ["{{base_url}}"],
+              "path": ["renew"]
+            },
+            "description": "Receive a new API key for an existing user"
+          },
+          "response": []
+        },
+        {
+          "name": "Revoke User (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{admin_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/revoke",
+              "host": ["{{base_url}}"],
+              "path": ["revoke"]
+            },
+            "description": "Revoke/deactivate a user (admin only)"
+          },
+          "response": []
+        },
+        {
+          "name": "Reactivate User (Admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{admin_api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reactivate",
+              "host": ["{{base_url}}"],
+              "path": ["reactivate"]
+            },
+            "description": "Reactivate a revoked user (admin only)"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Content Management",
+      "item": [
+        {
+          "name": "Upload File",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/upload",
+              "host": ["{{base_url}}"],
+              "path": ["upload"]
+            },
+            "description": "Upload a file to IPFS network and receive a CID"
+          },
+          "response": []
+        },
+        {
+          "name": "Retrieve File",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/retrieve/{{cid}}",
+              "host": ["{{base_url}}"],
+              "path": ["retrieve", "{{cid}}"]
+            },
+            "description": "Retrieve a file from IPFS network using its CID"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Content Pinning",
+      "item": [
+        {
+          "name": "Pin Content",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/pin/{{cid}}",
+              "host": ["{{base_url}}"],
+              "path": ["pin", "{{cid}}"]
+            },
+            "description": "Pin content on IPFS network to ensure availability"
+          },
+          "response": []
+        },
+        {
+          "name": "Unpin Content",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/unpin/{{cid}}",
+              "host": ["{{base_url}}"],
+              "path": ["unpin", "{{cid}}"]
+            },
+            "description": "Unpin content from IPFS network"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "API Health",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check API health status"
+          },
+          "response": []
+        },
+        {
+          "name": "Database Connection Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/db-check",
+              "host": ["{{base_url}}"],
+              "path": ["db-check"]
+            },
+            "description": "Verify database connectivity"
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "API Documentation",
+      "item": [
+        {
+          "name": "Swagger UI",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/docs",
+              "host": ["{{base_url}}"],
+              "path": ["api", "docs"]
+            },
+            "description": "Interactive API documentation (Swagger UI)\n\nAvailable in development and staging environments only"
+          },
+          "response": []
+        },
+        {
+          "name": "OpenAPI Specification",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/apispec.json",
+              "host": ["{{base_url}}"],
+              "path": ["apispec.json"]
+            },
+            "description": "OpenAPI/Swagger specification in JSON format"
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "admin_api_key",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "cid",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
