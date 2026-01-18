@@ -27,6 +27,45 @@ docker-compose logs -f app
 - **PostgreSQL**: localhost:5432 (user/pass)
 - **Redis**: localhost:6379
 
+### Health and Status Checks
+
+**Check service health** (local):
+```bash
+curl http://localhost:5000/health
+```
+
+Expected response:
+```json
+{
+  "status": "ok",
+  "app": "ipfs-gateway",
+  "env": "development"
+}
+```
+
+**Check database connectivity** (local):
+```bash
+curl http://localhost:5000/db-check
+```
+
+Expected response:
+```json
+{
+  "status": "ok",
+  "database": "connected",
+  "query_result": 1
+}
+```
+
+**For GAE deployment**, replace `localhost:5000` with your app URL:
+```bash
+# Service health check
+curl https://<PROJECT_ID>.nw.r.appspot.com/health
+
+# Database check
+curl https://<PROJECT_ID>.nw.r.appspot.com/db-check
+```
+
 ### Stop Services
 
 ```bash

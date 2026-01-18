@@ -1,3 +1,4 @@
+from google.cloud import secretmanager
 import os
 from dataclasses import dataclass, field
 
@@ -43,9 +44,30 @@ class DevConfig(BaseConfig):
 
 @dataclass
 class StagingConfig(BaseConfig):
-    DEBUG: bool = False
+    def load_secret(project_id: str, name: str) -> str:
+        client = secretmanager.SecretManagerServiceClient()
+        parent = f"projects/{project_id}/secrets/{name}/versions/latest"
+        resp = client.access_secret_version(name=parent)
+        return resp.payload.data.decode("utf-8")
+
+    DEBUG: bool = False    
+
+    PROJECT_ID = os.getenv("GCP_PROJECT") or os.getenv("GOOGLE_CLOUD_PROJECT")
+    for key in [
+        "FILEBASE_IPFS_API_KEY",
+        "FILEBASE_BUCKET",
+        "S3_ACCESS_KEY",
+        "S3_SECRET_ACCESS_KEY",
+        "ADMIN_API_KEY",
+        "DATABASE_URL_PROD",
+        "CELERY_BROKER_URL",
+        "CELERY_RESULT_BACKEND",
+    ]:
+        if PROJECT_ID:
+            os.environ[key] = os.environ.get(key) or load_secret(PROJECT_ID, key)
     # Use production database for staging environment
-    DATABASE_URL: str = field(default_factory=get_prod_db_url)
+    DATABASE_URL: str = os.getenv("DATABASE_URL_PROD", get_prod_db_url())
+    print("StagingConfig - secrets loaded from Secret Manager.")
 
 
 @dataclass
