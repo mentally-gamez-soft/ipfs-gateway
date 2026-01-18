@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from .config.settings import get_config
 from .utils.logging import configure_logging, init_request_hooks
 from .models.connection import init_db
+from .swagger import init_swagger
 
 
 def create_app(env: str | None = None) -> Flask:
@@ -27,6 +28,10 @@ def create_app(env: str | None = None) -> Flask:
 
     # Database
     init_db(app)
+
+    # Swagger/OpenAPI documentation (dev and staging only)
+    app_env = app.config.get("APP_ENV", "development")
+    init_swagger(app, env=app_env)
 
     # Register blueprints
     from .routes.health import bp as health_bp

@@ -4,6 +4,7 @@ import logging
 from core.utils.decorators import require_api_key, require_admin_key
 from core.services import auth_service
 from core.utils.errors import ErrorResponses
+from core.swagger import AUTH_REGISTER_DOCS, AUTH_STATUS_DOCS
 
 bp = Blueprint("auth", __name__)
 logger = logging.getLogger(__name__)
@@ -11,6 +12,38 @@ logger = logging.getLogger(__name__)
 
 @bp.post("/register")
 def register():
+    """
+    ---
+    tags:
+      - Authentication
+    summary: Register a new user and receive an API key
+    parameters:
+      - name: body
+        in: body
+        required: true
+        schema:
+          type: object
+          properties:
+            email:
+              type: string
+              example: user@example.com
+          required:
+            - email
+    responses:
+      201:
+        description: User registered successfully
+        schema:
+          type: object
+          properties:
+            email:
+              type: string
+            api_key:
+              type: string
+      400:
+        description: Missing email
+      409:
+        description: User already exists
+    """
     data = request.get_json(silent=True) or {}
     email = data.get("email")
     if not email:
@@ -31,6 +64,30 @@ def register():
 @bp.post("/status")
 @require_api_key
 def status():
+    """
+    ---
+    tags:
+      - Authentication
+    summary: Check user status
+    security:
+      - ApiKeyAuth: []
+    responses:
+      200:
+        description: User status retrieved
+        schema:
+          type: object
+          properties:
+            id:
+              type: integer
+            email:
+              type: string
+            status:
+              type: string
+            role:
+              type: string
+      401:
+        description: Invalid or missing API key
+    """
     api_key = request.headers.get("X-API-Key")
     result = auth_service.status_for_api_key(api_key)
     if not result:
@@ -38,6 +95,7 @@ def status():
         return ErrorResponses.invalid_api_key()
     logger.info(f"Status check successful for user: {result['email']}")
     return jsonify(result), 200
+
 
 
 @bp.post("/revoke")
