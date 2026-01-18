@@ -224,3 +224,7 @@ __marimo__/
 
 # HTTP manual testing files
 tests/api/http/testing-api.http
+
+
+#
+backup_code_connection_Database_PROD.txt

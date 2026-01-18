@@ -31,7 +31,7 @@ COPY . /app/
 RUN mkdir -p /app/logs
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=420s --retries=3 \
     CMD curl -f http://localhost:5000/health || exit 1
 
 # Expose port
